@@ -30,11 +30,17 @@
             <version>1.17.2</version>
         </dependency>
 
-        <!-- HTTP client for Anthropic API -->
         <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>4.12.0</version>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.49.0</version>
+        </dependency>
+
+        <!-- Anthropic API client -->
+        <dependency>
+            <groupId>com.anthropic</groupId>
+            <artifactId>anthropic-java</artifactId>
+            <version>2.15.0</version>
         </dependency>
 
         <!-- JSON parsing -->

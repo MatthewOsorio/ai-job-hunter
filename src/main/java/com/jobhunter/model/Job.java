@@ -1,21 +1,32 @@
 package com.jobhunter.model;
 
+import java.util.UUID;
+
 public class Job {
     private String id;
     private String title;
     private String company;
-    private String description;
     private String url;
+    private String description;
+    private boolean needsManualReview;
 
-    public Job(String title, String company, String description, String url) {
+    public Job(String title, String company, String url) {
+        this.id = generatedId();
         this.title = title;
         this.company = company;
-        this.description = description;
         this.url = url;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public Job(String title, String company, String url, String description) {
+        this.id = generatedId();
+        this.title = title;
+        this.company = company;
+        this.url = url;
+        this.description = description;
+    }
+
+    private String generatedId() {
+        return UUID.randomUUID().toString();
     }
 
     public void setTitle(String title) {
@@ -26,12 +37,16 @@ public class Job {
         this.company = company;
     }
 
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
     public void setDescription(String description) {
         this.description = description;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setNeedsManualReview(boolean needsManualReview) {
+        this.needsManualReview = needsManualReview;
     }
 
     public String getId() {
@@ -52,6 +67,10 @@ public class Job {
 
     public String getUrl() {
         return url;
+    }
+
+    public boolean getNeedsManualReview(){
+        return needsManualReview;
     }
 
     @Override

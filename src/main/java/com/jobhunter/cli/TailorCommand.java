@@ -29,7 +29,7 @@ public class TailorCommand implements Runnable {
 
             System.out.println("Tailoring resume...");
             String resume = Files.readString(Paths.get(resumePath));
-            claudeService.tailorResume(resume, jobText);
+            // claudeService.tailorResume(resume, jobText);
 
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());

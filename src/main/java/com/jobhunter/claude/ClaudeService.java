@@ -5,15 +5,22 @@ import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobhunter.cli.Main;
 
-import java.io.IOException;
+import com.typesafe.config.Config;
+
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ClaudeService {
         private final AnthropicClient client = AnthropicOkHttpClient.builder()
                         .apiKey(Main.dotenv.get("ANTHROPIC_API_KEY"))
                         .build();
+
+        private final ObjectMapper objectMapper = new ObjectMapper();
+
+        private static final Config prompts = Main.config.getConfig("jobhunter.prompts");
 
         private final String systemPrompt = """
                         You are an expert resume optimization specialist with deep knowledge of ATS (Applicant Tracking Systems), technical recruiting, and the software engineering job market.
@@ -68,46 +75,37 @@ public class ClaudeService {
                         {{JOB_POSTING}}
                         """;
 
-        public void tailorResume(String resume, String jobPosting) throws IOException {
-
-                String userPrompt = userPromptTemplate.replace("{{JOB_POSTING}}", jobPosting)
-                                .replace("{{RESUME}}", resume);
-
-                String response = callClaude(userPrompt);
-
-                String[] parts = response.split("---CHANGES---");
-                String tailoredLatex = parts[0].trim()
-                                .replaceAll("(?s)^```latex\\s*", "")
-                                .replaceAll("(?s)^```\\s*", "")
-                                .replaceAll("```$", "")
-                                .trim();
-
-                System.out.println(tailoredLatex);
-
-                // Path original = Paths.get(RESUME_PATH);
-                // Path output = original.resolveSibling(
-                // original.getFileName().toString().replace(".tex", "_tailored.tex"));
-                // Files.writeString(output, tailoredLatex);
-
-                // System.out.println("Tailored resume saved to: " + output);
-                // System.out.println("\n--- CHANGES ---\n" + changes);
+        public Optional<String> extractJobDescription(String jobPosting) {
+                String raw = callClaude(
+                        Model.CLAUDE_HAIKU_4_5_20251001,
+                        prompts.getString("extraction.system"),
+                        prompts.getString("extraction.user").replace("{{PAGE_CONTENT}}", jobPosting));
+                try {
+                        String json = raw.replaceAll("(?s)^```(?:json)?\\s*", "").replaceAll("(?s)```\\s*$", "").trim();
+                        ExtractionResult result = objectMapper.readValue(json, ExtractionResult.class);
+                        return result.found() ? Optional.of(result.description()) : Optional.empty();
+                } catch (Exception e) {
+                        System.err.println("Failed to parse extraction response: " + raw);
+                        return Optional.empty();
+                }
         }
 
-        private String callClaude(String userPrompt) {
+        private String callClaude(Model model, String systemPrompt, String userPrompt) {
                 MessageCreateParams params = MessageCreateParams.builder()
-                                .model(Model.CLAUDE_SONNET_4_5)
+                                .model(model)
                                 .maxTokens(8096L)
                                 .addUserMessage(userPrompt)
                                 .system(systemPrompt)
                                 .build();
 
                 Message response = client.messages().create(params);
+                return getClaudeResponse(response);
+        }
 
-                String text = response.content().stream()
+        private String getClaudeResponse(Message response) {
+                return response.content().stream()
                                 .filter(block -> block.isText())
                                 .map(block -> block.asText().text())
                                 .collect(Collectors.joining("\n"));
-
-                return text;
         }
 }

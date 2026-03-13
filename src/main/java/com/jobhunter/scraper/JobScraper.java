@@ -11,6 +11,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import com.jobhunter.claude.ClaudeService;
 import com.jobhunter.cli.Main;
 import com.jobhunter.model.FetchResult;
 import com.jobhunter.model.Job;
@@ -19,6 +20,7 @@ import com.typesafe.config.Config;
 public class JobScraper {
     private Config config = Main.config;
     private PageFetcher pageFetcher = new PageFetcher();
+    private ClaudeService claudeService = new ClaudeService();
 
     public void scrap() {
         List<Job> jobs = new ArrayList<>();
@@ -47,6 +49,8 @@ public class JobScraper {
 
         executor.shutdown();
         pageFetcher.close();
+
+        System.out.println(jobs);
     }
 
     private List<Job> scrapGitHubRepo(String name, String url) {
@@ -113,16 +117,16 @@ public class JobScraper {
 
         if (result.getStatus() != FetchStatus.SUCCESS) {
             job.setNeedsManualReview(true);
-            System.out.println("  ✗ Failed: " + job + " — " + result.getReason());
             return;
         }
 
         if (result.needsExtraction()) {
-            // TODO: Send result.getContent() to LLM for extraction
-            // System.out.println("  → Needs LLM extraction: " + job);
+            claudeService.extractJobDescription(result.getContent())
+                    .ifPresentOrElse(
+                            job::setDescription,
+                            () -> job.setNeedsManualReview(true));
         } else {
             job.setDescription(result.getContent());
-            // System.out.println("  ✓ Got description: " + job);
         }
     }
 }

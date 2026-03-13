@@ -7,7 +7,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import com.jobhunter.model.FetchResult;
-import com.jobhunter.model.Job;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
@@ -22,9 +21,6 @@ public class PageFetcher {
 
     public FetchResult fetch(String url) {
         url = url.replaceAll("/(application|apply)(\\?|$)", "$2");
-
-        System.out.println(url);
-
         boolean isWorkday = url.contains("myworkdayjobs.com") || url.contains("myworkdaysite.com");
 
         if (!isWorkday) {

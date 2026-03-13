@@ -15,6 +15,7 @@ public class Job {
         this.title = title;
         this.company = company;
         this.url = url;
+        this.needsManualReview = false;
     }
 
     public Job(String title, String company, String url, String description) {
@@ -23,6 +24,7 @@ public class Job {
         this.company = company;
         this.url = url;
         this.description = description;
+        this.needsManualReview = false;
     }
 
     private String generatedId() {
@@ -75,6 +77,6 @@ public class Job {
 
     @Override
     public String toString() {
-        return String.format("%s at %s (%s)", title, company, url);
+        return String.format("%s at %s (%s) - %s", title, company, url, description);
     }
 }

@@ -2,7 +2,7 @@ package com.jobhunter.job;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
-import com.jobhunter.db.JobRepository;
+// import com.jobhunter.db.JobRepository;
 import com.jobhunter.scraper.FetchResult;
 import com.jobhunter.scraper.FetchStatus;
 import com.jobhunter.scraper.PageFetcher;
@@ -14,6 +14,7 @@ import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -22,10 +23,9 @@ public class JobScraper {
     private final Config config = Main.config;
     private final PageFetcher pageFetcher = new PageFetcher();
     private final ClaudeService claudeService = new ClaudeService();
-    private final JobRepository repository = new JobRepository();
+    // private final JobRepository repository = new JobRepository();
 
-    /** Scrapes all configured sources, skips seen URLs, fetches + extracts descriptions. */
-    public List<Job> scrape() {
+    public JobScraperResult scrape() {
         List<Job> jobs = new ArrayList<>();
 
         for (Config source : config.getConfigList("jobhunter.sources")) {
@@ -34,14 +34,15 @@ public class JobScraper {
             }
         }
 
-        // Filter out already-seen URLs
-        jobs.removeIf(job -> repository.hasBeenSeen(job.getUrl()));
+        // // Filter out already-seen URLs
+        // jobs.removeIf(job -> repository.hasBeenSeen(job.getUrl()));
 
+        JobScraperResult results = new JobScraperResult();
         ExecutorService executor = Executors.newFixedThreadPool(7);
         List<Future<?>> futures = new ArrayList<>();
 
         for (Job job : jobs) {
-            futures.add(executor.submit(() -> processJob(job)));
+            futures.add(executor.submit(() -> processJob(job, results)));
         }
 
         for (Future<?> future : futures) {
@@ -55,28 +56,32 @@ public class JobScraper {
         executor.shutdown();
         pageFetcher.close();
 
-        // Mark all as seen regardless of extraction success
-        jobs.forEach(job -> repository.markAsSeen(job.getUrl()));
+        // // Mark all as seen regardless of extraction success
+        // jobs.forEach(job -> repository.markAsSeen(job.getUrl()));
 
-        return jobs;
+        return results;
     }
 
-    /** Fetches and extracts description for a single job. Used by JobRunner.runOne(). */
-    public void processJob(Job job) {
-        FetchResult result = pageFetcher.fetch(job.getUrl());
+    public void processJob(Job job, JobScraperResult result) {
+        FetchResult fetchResult = pageFetcher.fetch(job.getUrl());
 
-        if (result.getStatus() != FetchStatus.SUCCESS) {
-            job.setNeedsManualReview(true);
+        if (fetchResult.getStatus() != FetchStatus.SUCCESS) {
+            result.addFailedJob(job);
             return;
         }
 
-        if (result.needsExtraction()) {
-            claudeService.extractJobDescription(result.getContent())
-                    .ifPresentOrElse(
-                            job::setDescription,
-                            () -> job.setNeedsManualReview(true));
+        if (fetchResult.needsExtraction()) {
+            Optional<String> desc = claudeService.extractJobDescription(fetchResult.getContent());
+            if (desc.isPresent()) {
+                job.setDescription(desc.get());
+                result.addValidJob(job);
+            } else {
+                result.addFailedJob(job);
+            }
+            ;
         } else {
-            job.setDescription(result.getContent());
+            job.setDescription(fetchResult.getContent());
+            result.addValidJob(job);
         }
     }
 
@@ -91,14 +96,17 @@ public class JobScraper {
                     .get();
 
             Element heading = doc.select("h2:contains(software engineer)").first();
-            if (heading == null) throw new Exception("Could not find job listings heading for: " + name);
+            if (heading == null)
+                throw new Exception("Could not find job listings heading for: " + name);
 
             Element table = heading.parent().nextElementSibling().nextElementSibling().select("table").first();
-            if (table == null) throw new Exception("Could not find job listings table for: " + name);
+            if (table == null)
+                throw new Exception("Could not find job listings table for: " + name);
 
             String currentCompany = null;
             for (Element row : table.select("tr")) {
-                if (!row.select("th").isEmpty()) continue;
+                if (!row.select("th").isEmpty())
+                    continue;
 
                 Elements cols = row.select("td");
                 String firstCol = cols.get(0).text().trim();
@@ -113,10 +121,12 @@ public class JobScraper {
                 Element linkCol = cols.get(3);
                 String age = cols.get(4).text().trim();
 
-                if (!age.equals("0d") && !age.equals("1d")) continue;
+                if (!age.equals("0d") && !age.equals("1d"))
+                    continue;
 
                 Element link = linkCol.select("a").first();
-                if (link == null) continue;
+                if (link == null)
+                    continue;
 
                 jobs.add(new Job(title, firstCol, link.attr("href")));
             }

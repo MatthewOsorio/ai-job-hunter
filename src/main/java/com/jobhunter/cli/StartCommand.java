@@ -11,56 +11,59 @@ import static org.quartz.TriggerBuilder.newTrigger;
 
 @Command(name = "start", description = "Start the job hunter, running every hour until stopped.")
 public class StartCommand implements Runnable {
-
+    private final JobRunner jobRunner = new JobRunner();
+    
     @Override
     public void run() {
-        try {
-            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        jobRunner.runAll();
 
-            JobDetail job = newJob(PipelineJob.class)
-                    .withIdentity("pipeline", "jobhunter")
-                    .build();
+        // try {
+        //     Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
 
-            Trigger trigger = newTrigger()
-                    .withIdentity("pipeline-trigger", "jobhunter")
-                    .startNow()
-                    .withSchedule(simpleSchedule()
-                            .withIntervalInHours(1)
-                            .repeatForever())
-                    .build();
+        //     JobDetail job = newJob(PipelineJob.class)
+        //             .withIdentity("pipeline", "jobhunter")
+        //             .build();
 
-            scheduler.scheduleJob(job, trigger);
-            scheduler.start();
+        //     Trigger trigger = newTrigger()
+        //             .withIdentity("pipeline-trigger", "jobhunter")
+        //             .startNow()
+        //             .withSchedule(simpleSchedule()
+        //                     .withIntervalInHours(1)
+        //                     .repeatForever())
+        //             .build();
 
-            System.out.println("Job hunter started. Running every hour. Press Ctrl+C to stop.");
+        //     scheduler.scheduleJob(job, trigger);
+        //     scheduler.start();
 
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try {
-                    System.out.println("Shutting down scheduler...");
-                    scheduler.shutdown(true); // wait for running jobs to finish
-                } catch (SchedulerException e) {
-                    System.err.println("Error shutting down scheduler: " + e.getMessage());
-                }
-            }));
+        //     System.out.println("Job hunter started. Running every hour. Press Ctrl+C to stop.");
 
-            Thread.currentThread().join(); // Block until Ctrl+C
+        //     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        //         try {
+        //             System.out.println("Shutting down scheduler...");
+        //             scheduler.shutdown(true); // wait for running jobs to finish
+        //         } catch (SchedulerException e) {
+        //             System.err.println("Error shutting down scheduler: " + e.getMessage());
+        //         }
+        //     }));
 
-        } catch (SchedulerException | InterruptedException e) {
-            System.err.println("Scheduler error: " + e.getMessage());
-            e.printStackTrace();
-        }
+        //     Thread.currentThread().join(); // Block until Ctrl+C
+
+        // } catch (SchedulerException | InterruptedException e) {
+        //     System.err.println("Scheduler error: " + e.getMessage());
+        //     e.printStackTrace();
+        // }
     }
 
-    public static class PipelineJob implements Job {
-        @Override
-        public void execute(JobExecutionContext context) {
-            System.out.println("Running pipeline at " + java.time.ZonedDateTime.now());
-            try {
-                new JobRunner().runAll();
-            } catch (Exception e) {
-                System.err.println("Pipeline error: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-    }
+    // public static class PipelineJob implements Job {
+    //     @Override
+    //     public void execute(JobExecutionContext context) {
+    //         System.out.println("Running pipeline at " + java.time.ZonedDateTime.now());
+    //         try {
+    //             new JobRunner().runAll();
+    //         } catch (Exception e) {
+    //             System.err.println("Pipeline error: " + e.getMessage());
+    //             e.printStackTrace();
+    //         }
+    //     }
+    // }
 }

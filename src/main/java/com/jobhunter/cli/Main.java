@@ -11,7 +11,7 @@ import picocli.CommandLine.Command;
     mixinStandardHelpOptions = true,
     version = "1.0",
     description = "Tailors your resume with AI and emails you when there are new job postings.",
-    subcommands = { StartCommand.class, TailorCommand.class }
+    subcommands = { StartCommand.class }
 )
 public class Main implements Runnable {
     public static final Dotenv dotenv = Dotenv.load();

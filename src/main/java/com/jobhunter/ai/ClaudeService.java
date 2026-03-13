@@ -2,6 +2,10 @@ package com.jobhunter.ai;
 
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.models.messages.Base64PdfSource;
+import com.anthropic.models.messages.ContentBlock;
+import com.anthropic.models.messages.ContentBlockParam;
+import com.anthropic.models.messages.DocumentBlockParam;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
@@ -9,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobhunter.cli.Main;
 import com.typesafe.config.Config;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -77,8 +82,7 @@ public class ClaudeService {
                 prompts.getString("extraction.system"),
                 prompts.getString("extraction.user").replace("{{PAGE_CONTENT}}", pageContent));
         try {
-            String json = stripFences(raw);
-            ExtractionResult result = objectMapper.readValue(json, ExtractionResult.class);
+            ExtractionResult result = objectMapper.readValue(raw, ExtractionResult.class);
             return result.found() ? Optional.of(result.description()) : Optional.empty();
         } catch (Exception e) {
             System.err.println("Failed to parse extraction response: " + raw);
@@ -86,19 +90,34 @@ public class ClaudeService {
         }
     }
 
+    public String parseResumeLatex(String latex) {
+        return callClaude(
+                Model.CLAUDE_HAIKU_4_5_20251001,
+                prompts.getString("resume.system"),
+                latex);
+    }
+
+    public String parseResumePdf(String encodedResume) {
+        DocumentBlockParam documentBlock = DocumentBlockParam.builder()
+                .source(Base64PdfSource.builder()
+                        .data(encodedResume)
+                        .build())
+                .build();
+
+        return callClaude(Model.CLAUDE_HAIKU_4_5_20251001, prompts.getString("resume.system"), documentBlock);
+    }
+
     public FilterResult filterJob(String profile, String jobDescription) {
-        String raw = callClaude(
+        String json = callClaude(
                 Model.CLAUDE_HAIKU_4_5_20251001,
                 prompts.getString("filter.system"),
                 prompts.getString("filter.user")
                         .replace("{{PROFILE}}", profile)
                         .replace("{{JOB_DESCRIPTION}}", jobDescription));
         try {
-            String json = stripFences(raw);
             return objectMapper.readValue(json, FilterResult.class);
         } catch (Exception e) {
-            System.err.println("Failed to parse filter response: " + raw);
-            // Default to applying if we can't parse — don't silently drop jobs
+            System.err.println("Failed to parse filter response: " + json);
             return new FilterResult(true, 50, "Parse error — defaulting to apply");
         }
     }
@@ -112,26 +131,37 @@ public class ClaudeService {
                         .replace("{{JOB_POSTING}}", jobDescription));
     }
 
+    private String callClaude(Model model, String systemPrompt, DocumentBlockParam documentBlock) {
+        MessageCreateParams params = MessageCreateParams.builder()
+                .model(model)
+                .maxTokens(4096L)
+                .system(systemPrompt)
+                .addUserMessageOfBlockParams(List.of(
+                        ContentBlockParam.ofDocument(documentBlock)))
+                .build();
+
+        return getClaudeResponse(client.messages().create(params));
+    }
+
     private String callClaude(Model model, String systemPrompt, String userPrompt) {
         MessageCreateParams params = MessageCreateParams.builder()
                 .model(model)
                 .maxTokens(8096L)
-                .addUserMessage(userPrompt)
                 .system(systemPrompt)
+                .addUserMessage(userPrompt)
                 .build();
 
-        Message response = client.messages().create(params);
-        return getClaudeResponse(response);
+        return getClaudeResponse(client.messages().create(params));
     }
 
     private String getClaudeResponse(Message response) {
-        return response.content().stream()
-                .filter(block -> block.isText())
+        return stripFences(response.content().stream()
+                .filter(ContentBlock::isText)
                 .map(block -> block.asText().text())
-                .collect(Collectors.joining("\n"));
+                .collect(Collectors.joining("\n")));
     }
 
     private String stripFences(String raw) {
-        return raw.replaceAll("(?s)^```(?:json)?\\s*", "").replaceAll("(?s)```\\s*$", "").trim();
+        return raw.replaceAll("(?s)^```\\w*\\s*", "").replaceAll("(?s)```\\s*$", "").trim();
     }
 }

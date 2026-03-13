@@ -1,4 +1,4 @@
-package com.jobhunter.model;
+package com.jobhunter.scraper;
 
 import com.jobhunter.scraper.FetchStatus;
 

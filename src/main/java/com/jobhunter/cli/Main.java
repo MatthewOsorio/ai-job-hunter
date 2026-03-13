@@ -6,8 +6,13 @@ import io.github.cdimascio.dotenv.Dotenv;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
-@Command(name = "jobhunter", mixinStandardHelpOptions = true, version = "1.0", description = "Tailors your resume with AI and emails you when there are new job postings.", subcommands = {
-        TailorCommand.class, StartCommand.class })
+@Command(
+    name = "jobhunter",
+    mixinStandardHelpOptions = true,
+    version = "1.0",
+    description = "Tailors your resume with AI and emails you when there are new job postings.",
+    subcommands = { StartCommand.class, TailorCommand.class }
+)
 public class Main implements Runnable {
     public static final Dotenv dotenv = Dotenv.load();
     public static final Config config = ConfigFactory.load("application.conf");

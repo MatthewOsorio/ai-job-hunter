@@ -3,84 +3,84 @@ package com.jobhunter.job;
 import java.util.UUID;
 
 public class Job {
-    private final String id;
-    private String title;
-    private String company;
-    private String url;
-    private String description;
-    private boolean shouldApply;
-    private int matchScore;
-    private String filterReason;
+  private final String id;
+  private String title;
+  private String company;
+  private String url;
+  private String description;
+  private boolean shouldApply;
+  private int matchScore;
+  private String filterReason;
 
-    public Job(String title, String company, String url) {
-        this.id = UUID.randomUUID().toString();
-        this.title = title;
-        this.company = company;
-        this.url = url;
-    }
+  public Job(String title, String company, String url) {
+    this.id = UUID.randomUUID().toString();
+    this.title = title;
+    this.company = company;
+    this.url = url;
+  }
 
-    public String getId() {
-        return id;
-    }
+  public String getId() {
+    return id;
+  }
 
-    public String getTitle() {
-        return title;
-    }
+  public String getTitle() {
+    return title;
+  }
 
-    public String getCompany() {
-        return company;
-    }
+  public String getCompany() {
+    return company;
+  }
 
-    public String getUrl() {
-        return url;
-    }
+  public String getUrl() {
+    return url;
+  }
 
-    public String getDescription() {
-        return description;
-    }
+  public String getDescription() {
+    return description;
+  }
 
-    public boolean isShouldApply() {
-        return shouldApply;
-    }
+  public boolean isShouldApply() {
+    return shouldApply;
+  }
 
-    public int getMatchScore() {
-        return matchScore;
-    }
+  public int getMatchScore() {
+    return matchScore;
+  }
 
-    public String getFilterReason() {
-        return filterReason;
-    }
+  public String getFilterReason() {
+    return filterReason;
+  }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+  public void setTitle(String title) {
+    this.title = title;
+  }
 
-    public void setCompany(String company) {
-        this.company = company;
-    }
+  public void setCompany(String company) {
+    this.company = company;
+  }
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+  public void setUrl(String url) {
+    this.url = url;
+  }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+  public void setDescription(String description) {
+    this.description = description;
+  }
 
-    public void setShouldApply(boolean v) {
-        this.shouldApply = v;
-    }
+  public void setShouldApply(boolean v) {
+    this.shouldApply = v;
+  }
 
-    public void setMatchScore(int v) {
-        this.matchScore = v;
-    }
+  public void setMatchScore(int v) {
+    this.matchScore = v;
+  }
 
-    public void setFilterReason(String v) {
-        this.filterReason = v;
-    }
+  public void setFilterReason(String v) {
+    this.filterReason = v;
+  }
 
-    @Override
-    public String toString() {
-        return String.format("%s at %s (%s)", title, company, url);
-    }
+  @Override
+  public String toString() {
+    return String.format("%s at %s (%s)", title, company, url);
+  }
 }

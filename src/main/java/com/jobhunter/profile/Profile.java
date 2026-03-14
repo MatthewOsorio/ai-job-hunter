@@ -2,39 +2,31 @@ package com.jobhunter.profile;
 
 import java.util.List;
 
+import com.jobhunter.profile.github.GitHubProfile;
+import com.jobhunter.profile.github.GitHubRepo;
+
 public class Profile {
-    private final String resume;
-    private final String username;
-    private final String bio;
-    private final List<GitHubRepo> topRepos;
-    
-    public Profile(String resume, String username, String bio, List<GitHubRepo> topRepos) {
-        this.resume = resume;
-        this.username = username;
-        this.bio = bio;
-        this.topRepos = topRepos;
-    }
+  private final String resume;
+  private final GitHubProfile githubProfile;
 
-    public String getResume() {
-        return resume;
-    }
+  public Profile(String resume, GitHubProfile githubProfile) {
+    this.resume = resume;
+    this.githubProfile = githubProfile;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getResume() {
+    return resume;
+  }
 
-    public String getBio() {
-        return bio;
-    }
+  public GitHubProfile getGithubProfile() {
+    return githubProfile;
+  }
 
-    public List<GitHubRepo> getTopRepos() {
-        return topRepos;
-    }
-
-    // @Override
-    // public String toString() { 
-
-    // }
-
-
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Resume:\n").append(resume).append("\n\n");
+    sb.append(githubProfile.toString()).append("\n");
+    return sb.toString();
+  }
 }

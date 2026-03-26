@@ -1,7 +1,11 @@
 package com.jobhunter.profile.github;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
@@ -26,9 +30,9 @@ public class GitHubFetcher {
   }
 
   public GitHubProfile fetch() {
-    List<GitHubRepo> repos = new java.util.ArrayList<>();
+    List<Future<GitHubRepo>> futures = new ArrayList<>();
 
-    try {
+    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       for (GHRepository repo : user.listRepositories()) {
         if (repo.isFork())
           continue;
@@ -38,17 +42,27 @@ public class GitHubFetcher {
         if (!topRepos.contains(name))
           continue;
 
-        List<String> languages = repo.listLanguages().keySet().stream().toList();
-        InputStream fullReadme = repo.getReadme().read();
-        String readmeContent =
-            new String(fullReadme.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-        fullReadme.close();
-
-        String summary = claude.summarizeReadMe(readmeContent);
-        repos.add(new GitHubRepo(name, languages, summary));
+        futures.add(executor.submit(() -> {
+          List<String> languages = repo.listLanguages().keySet().stream().toList();
+          try (InputStream fullReadme = repo.getReadme().read()) {
+            String readmeContent =
+                new String(fullReadme.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            String summary = claude.summarizeReadMe(readmeContent);
+            return new GitHubRepo(name, languages, summary);
+          }
+        }));
       }
     } catch (Exception e) {
       System.err.println("Error fetching repos: " + e.getMessage());
+    }
+
+    List<GitHubRepo> repos = new ArrayList<>();
+    for (Future<GitHubRepo> future : futures) {
+      try {
+        repos.add(future.get());
+      } catch (Exception e) {
+        System.err.println("Error processing repo: " + e.getMessage());
+      }
     }
 
     return new GitHubProfile(username, repos);

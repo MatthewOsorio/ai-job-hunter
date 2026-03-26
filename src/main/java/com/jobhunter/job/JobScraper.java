@@ -38,22 +38,23 @@ public class JobScraper {
     // jobs.removeIf(job -> repository.hasBeenSeen(job.getUrl()));
 
     JobScraperResult results = new JobScraperResult();
-    ExecutorService executor = Executors.newFixedThreadPool(7);
-    List<Future<?>> futures = new ArrayList<>();
 
-    for (Job job : jobs) {
-      futures.add(executor.submit(() -> processJob(job, results)));
-    }
+    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      List<Future<?>> futures = new ArrayList<>();
 
-    for (Future<?> future : futures) {
-      try {
-        future.get();
-      } catch (Exception e) {
-        System.err.println("Thread error: " + e.getMessage());
+      for (Job job : jobs) {
+        futures.add(executor.submit(() -> processJob(job, results)));
+      }
+
+      for (Future<?> future : futures) {
+        try {
+          future.get();
+        } catch (Exception e) {
+          System.err.println("Thread error: " + e.getMessage());
+        }
       }
     }
 
-    executor.shutdown();
     pageFetcher.close();
 
     // // Mark all as seen regardless of extraction success

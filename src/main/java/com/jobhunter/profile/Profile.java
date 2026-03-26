@@ -1,9 +1,6 @@
 package com.jobhunter.profile;
 
-import java.util.List;
-
 import com.jobhunter.profile.github.GitHubProfile;
-import com.jobhunter.profile.github.GitHubRepo;
 
 public class Profile {
   private final String resume;

@@ -15,11 +15,15 @@ public class ResumeParser {
     this.resumePath = Main.dotenv.get("RESUME_PATH");
 
     if (resumePath == null || resumePath.isEmpty()) {
-      throw new IllegalArgumentException("RESUME_PATH environment variable is not set or empty.");
+      throw new ResumeNotFoundException(
+          "RESUME_PATH is not set in .env. Please add the path to your resume.");
     }
   }
 
   public String parse() {
+    if (!Files.exists(Paths.get(resumePath))) {
+      throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
+    }
     if (resumePath.endsWith(".tex")) {
       return parseLatex(resumePath);
     } else if (resumePath.endsWith(".pdf")) {

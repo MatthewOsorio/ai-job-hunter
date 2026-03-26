@@ -3,6 +3,9 @@ package com.jobhunter.cli;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import io.github.cdimascio.dotenv.Dotenv;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -38,10 +41,31 @@ public class Main implements Runnable {
       System.err.println("Configuration error: API key or config file missing.");
       System.exit(1);
     }
+
+    String resumePath = dotenv.get("RESUME_PATH");
+    if (resumePath == null || resumePath.isEmpty() || !Files.exists(Paths.get(resumePath))) {
+      System.err.println(
+          "Resume not found. Set RESUME_PATH in your .env file to the path of your .pdf or .tex resume.");
+      System.exit(1);
+    }
   }
 
   @Override
   public void run() {
-    System.out.println("Use --help to see available commands.");
+    ensureResumePath();
+    List<MenuItem> menuItems = List.of(new MenuItem("Run Job Hunter",
+        "Scrap jobs from sources, filter them, tailors resume, and notify you of matches",
+        () -> new StartCommand().run()));
+    new InteractiveMenu(menuItems).show();
+  }
+
+  private void ensureResumePath() {
+    String resumePath = dotenv.get("RESUME_PATH");
+    if (resumePath != null && !resumePath.isEmpty() && Files.exists(Paths.get(resumePath))) {
+      return;
+    }
+    System.err.println(
+        "Resume not configured. Please set RESUME_PATH in your .env file to a .pdf or .tex resume.");
+    System.exit(1);
   }
 }

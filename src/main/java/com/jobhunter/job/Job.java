@@ -10,7 +10,6 @@ public class Job {
   private String description;
   private boolean shouldApply;
   private int matchScore;
-  private String filterReason;
 
   public Job(String title, String company, String url) {
     this.id = UUID.randomUUID().toString();
@@ -47,10 +46,6 @@ public class Job {
     return matchScore;
   }
 
-  public String getFilterReason() {
-    return filterReason;
-  }
-
   public void setTitle(String title) {
     this.title = title;
   }
@@ -73,10 +68,6 @@ public class Job {
 
   public void setMatchScore(int v) {
     this.matchScore = v;
-  }
-
-  public void setFilterReason(String v) {
-    this.filterReason = v;
   }
 
   @Override

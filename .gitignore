@@ -40,3 +40,5 @@ application.local.conf
 .DS_Store
 
 *.db
+
+.claude/

@@ -1,32 +1,48 @@
-// package com.jobhunter.job;
+package com.jobhunter.job;
 
-// import com.jobhunter.ai.ClaudeService;
-// import com.jobhunter.ai.FilterResult;
-// // import com.jobhunter.profile.ProfileBuilder;
+import com.jobhunter.ai.ClaudeService;
+import com.jobhunter.ai.FilterResult;
+import com.jobhunter.profile.Profile;
+import com.jobhunter.profile.ProfileBuilder;
 
-// import java.util.List;
-// import java.util.stream.Collectors;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
-// public class JobFilter {
-// private final ClaudeService claudeService = new ClaudeService();
-// // private final String profile = new ProfileBuilder().build();
+public class JobFilter {
+  private final ClaudeService claudeService = new ClaudeService();
+  private final Profile profile;
 
-// /** Filters a list of jobs, returning only those Claude thinks are a good match. */
-// public List<Job> filter(List<Job> jobs) {
-// return jobs.stream()
-// .peek(this::filterOne)
-// .filter(Job::isShouldApply)
-// .collect(Collectors.toList());
-// }
+  public JobFilter() {
+    ProfileBuilder profileBuilder = new ProfileBuilder();
+    this.profile = profileBuilder.getProfile();
+  }
 
-// /** Runs filter on a single job, mutating it with the result. */
-// public void filterOne(Job job) {
-// FilterResult result = claudeService.filterJob(profile, job.getDescription());
-// job.setShouldApply(result.shouldApply());
-// job.setMatchScore(result.matchScore());
-// job.setFilterReason(result.reason());
+  public List<Job> filter(List<Job> jobs) {
+    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      List<Future<?>> futures = jobs.stream().map(job -> executor.submit(() -> filterOne(job)))
+          .collect(Collectors.toList());
 
-// System.out.printf("Filter [%d/100] %s at %s — %s%n",
-// result.matchScore(), job.getTitle(), job.getCompany(), result.reason());
-// }
-// }
+      for (Future<?> future : futures) {
+        try {
+          future.get();
+        } catch (Exception e) {
+          System.err.println("Filter error: " + e.getMessage());
+        }
+      }
+    }
+
+    return jobs.stream().filter(Job::isShouldApply).collect(Collectors.toList());
+  }
+
+  public void filterOne(Job job) {
+    FilterResult result = claudeService.filterJob(profile.toString(), job.getDescription());
+    job.setShouldApply(result.shouldApply());
+    job.setMatchScore(result.matchScore());
+
+    System.out.printf("Filter [%d/100] %s at %s%n", result.matchScore(), job.getTitle(),
+        job.getCompany());
+  }
+}

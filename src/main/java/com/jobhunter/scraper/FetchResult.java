@@ -1,7 +1,5 @@
 package com.jobhunter.scraper;
 
-import com.jobhunter.scraper.FetchStatus;
-
 public class FetchResult {
   private final FetchStatus status;
   private final String content;

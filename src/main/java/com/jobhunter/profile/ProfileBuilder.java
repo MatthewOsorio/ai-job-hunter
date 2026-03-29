@@ -1,28 +1,83 @@
 package com.jobhunter.profile;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jobhunter.cli.Console;
+import com.jobhunter.cli.Main;
 import com.jobhunter.profile.github.GitHubFetcher;
 import com.jobhunter.profile.github.GitHubProfile;
 import com.jobhunter.profile.resume.ResumeParser;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-// TODO: implement caching and invalidation logic
 public class ProfileBuilder {
   private final GitHubFetcher githubFetcher = new GitHubFetcher();
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ResumeParser resumeParser = new ResumeParser();
+  private final Path cachePath;
   private Profile profile;
 
-  public synchronized Profile getProfile() {
-    if (profile == null) {
-      profile = buildProfile();
-    }
+  public ProfileBuilder() {
+    String path = Main.config.hasPath("jobhunter.profile.cachePath")
+        ? Main.config.getString("jobhunter.profile.cachePath")
+        : "profile-cache.json";
+    this.cachePath = Paths.get(path);
+  }
+
+  public boolean isCached() {
+    return Files.exists(cachePath);
+  }
+
+  public Profile getProfile() {
+    if (profile != null)
+      return profile;
+    profile = loadFromCache().orElseGet(this::buildAndCache);
     return profile;
   }
 
-  public Profile buildProfile() {
-    ResumeParser resumeParser = new ResumeParser();
+  public Profile rebuildProfile() {
+    deleteCache();
+    profile = buildAndCache();
+    return profile;
+  }
 
+  private Optional<Profile> loadFromCache() {
+    if (!Files.exists(cachePath))
+      return Optional.empty();
+    try {
+      Profile cached = objectMapper.readValue(cachePath.toFile(), Profile.class);
+      return Optional.of(cached);
+    } catch (IOException e) {
+      Console.error("Profile cache unreadable, rebuilding", e);
+      return Optional.empty();
+    }
+  }
+
+  private Profile buildAndCache() {
+    Profile built = buildProfile();
+    try {
+      objectMapper.writerWithDefaultPrettyPrinter().writeValue(cachePath.toFile(), built);
+    } catch (IOException e) {
+      Console.error("Failed to write profile cache", e);
+    }
+    return built;
+  }
+
+  private void deleteCache() {
+    try {
+      Files.deleteIfExists(cachePath);
+    } catch (IOException e) {
+      Console.error("Failed to delete profile cache", e);
+    }
+  }
+
+  private Profile buildProfile() {
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       Future<String> resumeFuture = executor.submit(resumeParser::parse);
       Future<GitHubProfile> githubFuture = executor.submit(githubFetcher::fetch);
@@ -30,8 +85,12 @@ public class ProfileBuilder {
       String resume = resumeFuture.get();
       GitHubProfile githubProfile = githubFuture.get();
       return new Profile(resume, githubProfile);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to build profile: " + e.getMessage(), e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Profile build interrupted", e);
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      throw new RuntimeException("Profile build failed: " + cause.getMessage(), cause);
     }
   }
 }

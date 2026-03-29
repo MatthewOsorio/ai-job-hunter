@@ -40,5 +40,6 @@ application.local.conf
 .DS_Store
 
 *.db
+profile-cache.json
 
 .claude/

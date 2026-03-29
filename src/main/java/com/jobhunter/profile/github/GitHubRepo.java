@@ -7,6 +7,8 @@ public class GitHubRepo {
   private String summary;
   private List<String> languages;
 
+  public GitHubRepo() {}
+
   public GitHubRepo(String name, List<String> languages, String summary) {
     this.name = name;
     this.languages = languages;

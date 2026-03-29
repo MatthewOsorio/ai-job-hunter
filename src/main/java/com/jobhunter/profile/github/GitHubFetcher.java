@@ -12,6 +12,7 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 import com.jobhunter.ai.ClaudeService;
+import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 
 public class GitHubFetcher {
@@ -52,20 +53,22 @@ public class GitHubFetcher {
           }
         }));
       }
-    } catch (Exception e) {
-      System.err.println("Error fetching repos: " + e.getMessage());
-    }
 
-    List<GitHubRepo> repos = new ArrayList<>();
-    for (Future<GitHubRepo> future : futures) {
-      try {
-        repos.add(future.get());
-      } catch (Exception e) {
-        System.err.println("Error processing repo: " + e.getMessage());
+      List<GitHubRepo> repos = new ArrayList<>();
+      for (Future<GitHubRepo> future : futures) {
+        try {
+          repos.add(future.get());
+        } catch (Exception e) {
+          Console.error("Failed to process GitHub repo", e);
+        }
       }
+
+      return new GitHubProfile(username, repos);
+    } catch (Exception e) {
+      Console.error("Failed to fetch GitHub repos", e);
     }
 
-    return new GitHubProfile(username, repos);
+    return new GitHubProfile(username, new ArrayList<>());
   }
 
 }

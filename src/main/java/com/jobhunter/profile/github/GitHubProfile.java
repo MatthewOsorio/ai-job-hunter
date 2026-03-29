@@ -6,6 +6,8 @@ public class GitHubProfile {
   String username;
   List<GitHubRepo> topRepos;
 
+  public GitHubProfile() {}
+
   GitHubProfile(String username, List<GitHubRepo> topRepos) {
     this.username = username;
     this.topRepos = topRepos;

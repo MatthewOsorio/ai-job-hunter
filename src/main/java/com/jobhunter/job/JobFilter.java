@@ -2,6 +2,7 @@ package com.jobhunter.job;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.FilterResult;
+import com.jobhunter.cli.Console;
 import com.jobhunter.profile.Profile;
 import com.jobhunter.profile.ProfileBuilder;
 
@@ -29,7 +30,7 @@ public class JobFilter {
         try {
           future.get();
         } catch (Exception e) {
-          System.err.println("Filter error: " + e.getMessage());
+          Console.error("Filter failed", e);
         }
       }
     }
@@ -42,7 +43,7 @@ public class JobFilter {
     job.setShouldApply(result.shouldApply());
     job.setMatchScore(result.matchScore());
 
-    System.out.printf("Filter [%d/100] %s at %s%n", result.matchScore(), job.getTitle(),
-        job.getCompany());
+    Console.progress("Filter " + result.matchScore() + "/100",
+        job.getTitle() + " at " + job.getCompany());
   }
 }

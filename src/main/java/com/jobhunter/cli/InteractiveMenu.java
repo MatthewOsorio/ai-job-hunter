@@ -9,6 +9,8 @@ import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
+import com.jobhunter.cli.options.MenuItem;
+
 public class InteractiveMenu {
 
   // @formatter:off
@@ -71,7 +73,7 @@ public class InteractiveMenu {
 
       terminal.writer().println();
       terminal.writer().flush();
-      items.get(choice - 1).action().run();
+      items.get(choice - 1).run(reader);
       terminal.writer().println();
       terminal.writer().flush();
     }

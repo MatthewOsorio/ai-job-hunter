@@ -13,6 +13,7 @@ import com.anthropic.models.messages.Model;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.typesafe.config.Config;
 
@@ -100,7 +101,7 @@ public class ClaudeService {
       ExtractionResult result = objectMapper.readValue(raw, ExtractionResult.class);
       return result.found() ? Optional.of(result.description()) : Optional.empty();
     } catch (Exception e) {
-      System.err.println("Failed to parse extraction response: " + raw);
+      Console.error("Failed to parse extraction response");
       return Optional.empty();
     }
   }
@@ -125,7 +126,7 @@ public class ClaudeService {
     try {
       return objectMapper.readValue(json, FilterResult.class);
     } catch (Exception e) {
-      System.err.println("Failed to parse filter response: " + json);
+      Console.error("Failed to parse filter response");
       return new FilterResult(true, 50);
     }
   }
@@ -160,8 +161,8 @@ public class ClaudeService {
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
         try {
-          System.err.printf("Rate limit hit, retrying in %ds (attempt %d/%d)%n", delayMs / 1000,
-              attempt, maxRetries);
+          Console.status(String.format("Rate limit hit, retrying in %ds (attempt %d/%d)",
+              delayMs / 1000, attempt, maxRetries));
           Thread.sleep(delayMs);
         } catch (InterruptedException ie) {
           Thread.currentThread().interrupt();

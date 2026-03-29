@@ -17,7 +17,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class ProfileBuilder {
-  private final GitHubFetcher githubFetcher = new GitHubFetcher();
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ResumeParser resumeParser = new ResumeParser();
   private final Path cachePath;
@@ -78,6 +77,7 @@ public class ProfileBuilder {
   }
 
   private Profile buildProfile() {
+    GitHubFetcher githubFetcher = new GitHubFetcher();
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       Future<String> resumeFuture = executor.submit(resumeParser::parse);
       Future<GitHubProfile> githubFuture = executor.submit(githubFetcher::fetch);

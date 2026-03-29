@@ -29,7 +29,7 @@ public final class Console {
   }
 
   public static void error(String message, Throwable cause) {
-    System.err.println(INDENT + "[ERROR] " + message + ": " + cause.getMessage());
+    System.err.println(INDENT + "[ERROR] " + message + ": " + cause.toString());
   }
 
   public static void item(String text) {

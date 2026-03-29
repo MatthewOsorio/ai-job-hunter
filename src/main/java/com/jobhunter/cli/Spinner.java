@@ -6,6 +6,9 @@ public class Spinner {
   private Thread thread;
 
   public void start(String message) {
+    if (thread != null) {
+      stop();
+    }
     thread = new Thread(() -> {
       int i = 0;
       while (!Thread.currentThread().isInterrupted()) {

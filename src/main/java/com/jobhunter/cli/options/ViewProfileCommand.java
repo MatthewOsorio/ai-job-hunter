@@ -23,8 +23,12 @@ public class ViewProfileCommand extends MenuItem {
       spinner.start("Loading profile from cache ");
     }
 
-    Profile profile = profileBuilder.getProfile();
-    spinner.stop();
+    Profile profile;
+    try {
+      profile = profileBuilder.getProfile();
+    } finally {
+      spinner.stop();
+    }
 
     Console.header("Your Profile");
     Console.println(profile.toString());
@@ -34,8 +38,12 @@ public class ViewProfileCommand extends MenuItem {
         reader.readLine("  Would you like to rebuild your profile? (y/n): ").trim().toLowerCase();
     if (answer.equals("y") || answer.equals("yes")) {
       spinner.start("Rebuilding profile ");
-      Profile rebuilt = profileBuilder.rebuildProfile();
-      spinner.stop();
+      Profile rebuilt;
+      try {
+        rebuilt = profileBuilder.rebuildProfile();
+      } finally {
+        spinner.stop();
+      }
 
       Console.header("New Profile");
       Console.println(rebuilt.toString());

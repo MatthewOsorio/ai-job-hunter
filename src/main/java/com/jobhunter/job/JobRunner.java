@@ -16,8 +16,6 @@ public class JobRunner {
   public void runAll() {
     JobScraperResult result = jobScraper.scrape();
     List<Job> validJobs = result.getValidJobs();
-    List<Job> failedJobs = result.getFailedJobs();
-
     List<Job> filteredJobs = jobFilter.filter(validJobs);
 
 

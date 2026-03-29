@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude Playwright library internals bundled via shade -->
+    <Match>
+        <Package name="~com\.microsoft\.playwright\..*"/>
+    </Match>
+</FindBugsFilter>

@@ -43,3 +43,6 @@ application.local.conf
 profile-cache.json
 
 .claude/
+
+# OWASP dependency-check local cache
+dependency-check-data/

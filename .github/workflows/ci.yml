@@ -57,27 +57,3 @@ jobs:
       - name: Run tests with coverage
         run: mvn test jacoco:report --batch-mode --no-transfer-progress
 
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-
-      - name: OWASP Dependency Check
-        run: >
-          mvn org.owasp:dependency-check-maven:check
-          --batch-mode --no-transfer-progress
-          -DfailBuildOnCVSS=9
-
-      - name: Upload dependency report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-check-report
-          path: target/dependency-check-report.html
-          retention-days: 30

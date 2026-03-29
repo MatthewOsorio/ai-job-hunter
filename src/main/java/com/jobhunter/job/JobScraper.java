@@ -1,6 +1,7 @@
 package com.jobhunter.job;
 
 import com.jobhunter.ai.ClaudeService;
+import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 // import com.jobhunter.db.JobRepository;
 import com.jobhunter.scraper.FetchResult;
@@ -50,7 +51,7 @@ public class JobScraper {
         try {
           future.get();
         } catch (Exception e) {
-          System.err.println("Thread error: " + e.getMessage());
+          Console.error("Thread failed", e);
         }
       }
     }
@@ -88,7 +89,7 @@ public class JobScraper {
   private List<Job> scrapeGitHubRepo(String name, String url) {
     List<Job> jobs = new ArrayList<>();
     try {
-      System.out.println("Scraping source: " + name + " (" + url + ")");
+      Console.progress("Scraping", name + " (" + url + ")");
       Document doc = Jsoup.connect(url)
           .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -131,8 +132,7 @@ public class JobScraper {
         jobs.add(new Job(title, firstCol, link.attr("href")));
       }
     } catch (Exception e) {
-      System.err.println("Error scraping source: " + name);
-      e.printStackTrace();
+      Console.error("Scraping failed for " + name, e);
     }
     return jobs;
   }

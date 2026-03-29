@@ -1,12 +1,16 @@
 package com.jobhunter.profile;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jobhunter.profile.github.GitHubProfile;
 
 public class Profile {
   private final String resume;
   private final GitHubProfile githubProfile;
 
-  public Profile(String resume, GitHubProfile githubProfile) {
+  @JsonCreator
+  public Profile(@JsonProperty("resume") String resume,
+      @JsonProperty("githubProfile") GitHubProfile githubProfile) {
     this.resume = resume;
     this.githubProfile = githubProfile;
   }

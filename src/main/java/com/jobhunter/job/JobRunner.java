@@ -24,23 +24,37 @@ public class JobRunner {
   }
 
   public void runAll() {
+    JobScraperResult result;
     spinner.start("Scraping jobs ");
-    JobScraperResult result = jobScraper.scrape();
-    spinner.stop();
+    try {
+      result = jobScraper.scrape();
+    } finally {
+      spinner.stop();
+    }
 
     List<Job> validJobs = result.getValidJobs();
 
+    List<Job> filteredJobs;
     spinner.start("Filtering jobs ");
-    List<Job> filteredJobs = jobFilter.filter(validJobs);
-    spinner.stop();
+    try {
+      filteredJobs = jobFilter.filter(validJobs);
+    } finally {
+      spinner.stop();
+    }
 
     spinner.start("Tailoring resumes ");
-    jobTailor.tailor(filteredJobs);
-    spinner.stop();
+    try {
+      jobTailor.tailor(filteredJobs);
+    } finally {
+      spinner.stop();
+    }
 
     spinner.start("Sending email report ");
-    emailService.sendJobReport(filteredJobs, result.getFailedJobs());
-    spinner.stop();
+    try {
+      emailService.sendJobReport(filteredJobs, result.getFailedJobs());
+    } finally {
+      spinner.stop();
+    }
 
     com.jobhunter.cli.Console.status("Hunt job complete!");
   }

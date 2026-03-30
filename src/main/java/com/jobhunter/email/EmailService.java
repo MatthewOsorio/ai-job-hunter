@@ -3,8 +3,14 @@ package com.jobhunter.email;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.job.Job;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -24,7 +30,7 @@ public class EmailService {
   }
 
   public void sendJobReport(List<Job> matchedJobs, List<Job> failedJobs) {
-    if (senderEmail == null || appPassword == null || recipientEmail == null) {
+    if (isBlank(senderEmail) || isBlank(appPassword) || isBlank(recipientEmail)) {
       Console.status(
           "Email not configured — skipping notification. Set EMAIL_SENDER, APP_PASSWORD, and RECIPIENT_EMAIL in .env");
       return;
@@ -226,6 +232,10 @@ public class EmailService {
     sb.append("</body></html>");
 
     return sb.toString();
+  }
+
+  private boolean isBlank(String s) {
+    return s == null || s.trim().isEmpty();
   }
 
   private String escapeHtml(String text) {

@@ -41,19 +41,22 @@ public class JobTailor {
     String body = resumeContent.substring(splitIdx + "\\begin{document}".length());
 
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      List<Future<?>> futures =
-          jobs.stream().map(job -> executor.submit(() -> tailorOne(job, preamble, body)))
-              .collect(Collectors.toList());
+      List<JobTask> tasks = jobs.stream()
+          .map(job -> new JobTask(job, executor.submit(() -> tailorOne(job, preamble, body))))
+          .collect(Collectors.toList());
 
-      for (Future<?> future : futures) {
+      for (JobTask task : tasks) {
         try {
-          future.get();
+          task.future().get();
         } catch (Exception e) {
-          Console.error("Tailor failed", e);
+          Console.error("Tailor failed for job '" + task.job().getTitle() + "' at company '"
+              + task.job().getCompany() + "'", e);
         }
       }
     }
   }
+
+  private record JobTask(Job job, Future<?> future) {}
 
   private void tailorOne(Job job, String preamble, String body) {
     try {

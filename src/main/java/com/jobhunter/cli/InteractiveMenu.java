@@ -76,7 +76,7 @@ public class InteractiveMenu {
       try {
         items.get(choice - 1).run(reader);
       } catch (Exception e) {
-        Console.error("Command failed unexpectedly: " + e.getMessage());
+        Console.error("Command failed unexpectedly: " + e.getMessage(), e);
       }
       terminal.writer().println();
       terminal.writer().flush();

@@ -19,7 +19,7 @@ public class HuntCommand extends MenuItem {
       JobRunner jobRunner = new JobRunner(claude, spinner);
       jobRunner.runAll();
     } catch (JobHunterException e) {
-      Console.error(e.getMessage());
+      Console.error(e.getMessage(), e);
     }
   }
 }

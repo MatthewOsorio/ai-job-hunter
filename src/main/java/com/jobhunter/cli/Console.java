@@ -42,7 +42,18 @@ public final class Console {
   }
 
   public static void error(String message, Throwable cause) {
-    System.err.println(INDENT + "[ERROR] " + message + ": " + cause.getMessage());
+    if (cause == null) {
+      error(message);
+      return;
+    }
+    String causeMessage = cause.getMessage();
+    String causeDescription;
+    if (causeMessage == null || causeMessage.isBlank()) {
+      causeDescription = cause.toString();
+    } else {
+      causeDescription = cause.getClass().getName() + ": " + causeMessage;
+    }
+    System.err.println(INDENT + "[ERROR] " + message + ": " + causeDescription);
     if (verbose) {
       cause.printStackTrace(System.err);
     }

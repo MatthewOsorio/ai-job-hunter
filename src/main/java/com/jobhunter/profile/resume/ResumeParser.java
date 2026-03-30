@@ -25,7 +25,7 @@ public class ResumeParser {
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
-    if (resumePath.endsWith(".pdf")) {
+    if (resumePath.toLowerCase().endsWith(".pdf")) {
       return parsePdf(resumePath);
     } else {
       throw new IllegalArgumentException("Unsupported resume format. Use .pdf");

@@ -36,7 +36,12 @@ public class ClaudeService {
         AnthropicOkHttpClient.builder().apiKey(apiKey).timeout(Duration.ofMinutes(10)).build();
     this.prompts = jobhunterConfig.getConfig("prompts");
     this.ai = jobhunterConfig.getConfig("ai");
-    this.apiSemaphore = new Semaphore(ai.getInt("concurrency"));
+    int concurrency = ai.getInt("concurrency");
+    if (concurrency < 1) {
+      throw new IllegalArgumentException(
+          "Invalid AI concurrency setting: " + concurrency + ". Expected a value >= 1.");
+    }
+    this.apiSemaphore = new Semaphore(concurrency);
   }
 
   public Optional<String> extractJobDescription(String pageContent) {

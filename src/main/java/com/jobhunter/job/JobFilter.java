@@ -41,9 +41,6 @@ public class JobFilter {
   public void filterOne(Job job) {
     FilterResult result = claudeService.filterJob(profile.toString(), job.getDescription());
     job.setShouldApply(result.shouldApply());
-    job.setMatchScore(result.matchScore());
-
-    Console.progress("Filter " + result.matchScore() + "/100",
-        job.getTitle() + " at " + job.getCompany());
+    job.setMatchScore(result.matchScore());;
   }
 }

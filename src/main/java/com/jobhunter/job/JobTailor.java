@@ -1,47 +1,79 @@
-// package com.jobhunter.job;
+package com.jobhunter.job;
 
-// import com.jobhunter.ai.ClaudeService;
-// import com.jobhunter.cli.Main;
+import com.jobhunter.ai.ClaudeService;
+import com.jobhunter.cli.Console;
+import com.jobhunter.cli.Main;
 
-// import java.io.IOException;
-// import java.nio.file.Files;
-// import java.nio.file.Path;
-// import java.nio.file.Paths;
-// import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
-// public class JobTailor {
-// private final ClaudeService claudeService = new ClaudeService();
-// private final String resumePath = Main.config.getString("jobhunter.resume.path");
+public class JobTailor {
+  private final ClaudeService claudeService;
+  private final String resumePath = Main.dotenv.get("RESUME_PATH");
+  private final String outputDir = Main.dotenv.get("TARGET_DIR");
 
-// /** Tailors the resume for each job and writes the output to disk. */
-// public void tailor(List<Job> jobs) {
-// for (Job job : jobs) {
-// tailorOne(job);
-// }
-// }
+  public JobTailor(ClaudeService claudeService) {
+    this.claudeService = claudeService;
+  }
 
-// /** Tailors the resume for a single job and writes the output to disk. */
-// public void tailorOne(Job job) {
-// try {
-// String resume = Files.readString(Paths.get(resumePath));
-// String tailored = claudeService.tailorResume(resume, job.getDescription());
-// Path output = writeOutput(job, tailored);
-// System.out.println("Tailored resume written to: " + output);
-// } catch (IOException e) {
-// System.err.println("Error tailoring resume for " + job.getTitle() + ": " + e.getMessage());
-// }
-// }
+  public void tailor(List<Job> jobs) {
+    String resumeContent;
+    try {
+      resumeContent = Files.readString(Paths.get(resumePath));
+    } catch (IOException e) {
+      Console.error("Failed to read resume from " + resumePath, e);
+      return;
+    }
 
-// private Path writeOutput(Job job, String tailored) throws IOException {
-// String outputDir = Main.config.getString("jobhunter.resume.output-dir");
-// Files.createDirectories(Paths.get(outputDir));
+    int splitIdx = resumeContent.indexOf("\\begin{document}");
+    if (splitIdx == -1) {
+      Console.error("Could not find \\begin{document} in resume — is RESUME_PATH a .tex file?",
+          null);
+      return;
+    }
+    String preamble = resumeContent.substring(0, splitIdx + "\\begin{document}".length());
+    String body = resumeContent.substring(splitIdx + "\\begin{document}".length());
 
-// String safeTitle = job.getTitle().replaceAll("[^a-zA-Z0-9_-]", "_");
-// String safeCompany = job.getCompany().replaceAll("[^a-zA-Z0-9_-]", "_");
-// String filename = safeCompany + "_" + safeTitle + ".tex";
+    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      List<Future<?>> futures =
+          jobs.stream().map(job -> executor.submit(() -> tailorOne(job, preamble, body)))
+              .collect(Collectors.toList());
 
-// Path output = Paths.get(outputDir, filename);
-// Files.writeString(output, tailored);
-// return output;
-// }
-// }
+      for (Future<?> future : futures) {
+        try {
+          future.get();
+        } catch (Exception e) {
+          Console.error("Tailor failed", e);
+        }
+      }
+    }
+  }
+
+  private void tailorOne(Job job, String preamble, String body) {
+    try {
+      String tailoredBody = claudeService.tailorResumeTex(body, job.getDescription(), null);
+      String fullTex = preamble + "\n" + tailoredBody;
+      writeOutput(job, fullTex);
+    } catch (IOException e) {
+      Console.error("Error writing tailored resume for " + job.getTitle() + ": " + e.getMessage(),
+          e);
+    }
+  }
+
+  private Path writeOutput(Job job, String content) throws IOException {
+    Files.createDirectories(Paths.get(outputDir));
+    String safeCompany = job.getCompany().replaceAll("[^a-zA-Z0-9_-]", "_");
+    String safeTitle = job.getTitle().replaceAll("[^a-zA-Z0-9_-]", "_");
+    String filename = safeCompany + "_" + safeTitle + ".tex";
+    Path output = Paths.get(outputDir, filename);
+    Files.writeString(output, content);
+    return output;
+  }
+}

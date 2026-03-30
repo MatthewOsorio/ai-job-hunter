@@ -49,6 +49,13 @@ public class Main implements Runnable {
           "Resume not found. Set RESUME_PATH in your .env file to the path of your .pdf or .tex resume");
       System.exit(1);
     }
+
+    String targetDir = dotenv.get("TARGET_DIR");
+    if (targetDir == null || targetDir.isEmpty()) {
+      Console.error(
+          "TARGET_DIR not set. Set TARGET_DIR in your .env file to the output directory for tailored resumes");
+      System.exit(1);
+    }
   }
 
   @Override

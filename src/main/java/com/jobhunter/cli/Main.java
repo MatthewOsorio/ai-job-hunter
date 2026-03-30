@@ -2,6 +2,7 @@ package com.jobhunter.cli;
 
 import com.jobhunter.cli.options.MenuItem;
 import com.jobhunter.cli.options.MenuItemFactory;
+import com.jobhunter.exception.ConfigurationException;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -10,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 @Command(name = "jobhunter", mixinStandardHelpOptions = true, version = "1.0",
     description = "AI Job Hunter is a command-line tool that helps you find and apply to jobs that match your profile. It scrapes job listings from various sources, filters them based on your preferences, tailors your resume for each job, and notifies you of matches via email.")
@@ -17,12 +19,24 @@ public class Main implements Runnable {
   public static final Dotenv dotenv = Dotenv.load();
   public static final Config config = ConfigFactory.load("application.conf");
 
+  @Option(names = {"-v", "--verbose"}, description = "Print full stack traces and debug output")
+  private boolean verbose;
+
   public static void main(String[] args) {
     new CommandLine(new Main()).setExecutionStrategy(Main::executionStrategy).execute(args);
   }
 
   private static int executionStrategy(CommandLine.ParseResult parseResult) {
-    validate();
+    Main main = parseResult.commandSpec().userObject() instanceof Main m ? m : new Main();
+    if (main.verbose) {
+      Console.setVerbose(true);
+    }
+    try {
+      validate();
+    } catch (ConfigurationException e) {
+      Console.error(e.getMessage());
+      return 1;
+    }
     return new CommandLine.RunLast().execute(parseResult);
   }
 
@@ -30,31 +44,22 @@ public class Main implements Runnable {
     Console.status("AI Job Hunter started! Checking configurations...");
 
     boolean apiKeyLoaded = dotenv.get("ANTHROPIC_API_KEY") != null;
-    boolean configLoaded = false;
-
-    try {
-      config.getConfig("jobhunter");
-      configLoaded = true;
-    } catch (com.typesafe.config.ConfigException.Missing e) {
-    }
+    boolean configLoaded = config.hasPath("jobhunter");
 
     if (!apiKeyLoaded || !configLoaded) {
-      Console.error("API key or config file missing");
-      System.exit(1);
+      throw new ConfigurationException("API key or config file missing");
     }
 
     String resumePath = dotenv.get("RESUME_PATH");
     if (resumePath == null || resumePath.isEmpty() || !Files.exists(Paths.get(resumePath))) {
-      Console.error(
+      throw new ConfigurationException(
           "Resume not found. Set RESUME_PATH in your .env file to the path of your .pdf or .tex resume");
-      System.exit(1);
     }
 
     String targetDir = dotenv.get("TARGET_DIR");
     if (targetDir == null || targetDir.isEmpty()) {
-      Console.error(
+      throw new ConfigurationException(
           "TARGET_DIR not set. Set TARGET_DIR in your .env file to the output directory for tailored resumes");
-      System.exit(1);
     }
   }
 

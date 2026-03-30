@@ -14,7 +14,9 @@ import com.anthropic.models.messages.Model;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jobhunter.cli.Console;
+import com.jobhunter.exception.AiServiceException;
 import com.typesafe.config.Config;
 
 import java.time.Duration;
@@ -53,7 +55,7 @@ public class ClaudeService {
     try {
       ExtractionResult result = objectMapper.readValue(raw, ExtractionResult.class);
       return result.found() ? Optional.of(result.description()) : Optional.empty();
-    } catch (Exception e) {
+    } catch (JsonProcessingException e) {
       Console.error("Failed to parse extraction response", e);
       return Optional.empty();
     }
@@ -80,10 +82,8 @@ public class ClaudeService {
       FilterResult result = objectMapper.readValue(json, FilterResult.class);
       int clamped = Math.max(0, Math.min(100, result.matchScore()));
       return new FilterResult(result.shouldApply(), clamped);
-    } catch (Exception e) {
-      Console.error("Failed to parse filter response", e);
-      // Default to applying on parse failure — better to review a false positive than miss a job
-      return new FilterResult(true, 50);
+    } catch (JsonProcessingException e) {
+      throw new AiServiceException("Failed to parse filter response: " + e.getMessage(), e);
     }
   }
 
@@ -122,12 +122,12 @@ public class ClaudeService {
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
         try {
-          Console.status(String.format("API error (status %d), retrying in %ds (attempt %d/%d)",
+          Console.warn(String.format("API error (status %d), retrying in %ds (attempt %d/%d)",
               lastException.statusCode(), delayMs / 1000, attempt, maxRetries));
           Thread.sleep(delayMs);
         } catch (InterruptedException ie) {
           Thread.currentThread().interrupt();
-          throw new RuntimeException("Interrupted during retry backoff", ie);
+          throw new AiServiceException("Interrupted during retry backoff", ie);
         }
         delayMs *= 2;
       }
@@ -145,7 +145,8 @@ public class ClaudeService {
         apiSemaphore.release();
       }
     }
-    throw lastException;
+    throw new AiServiceException("Claude API failed after " + maxRetries + " retries",
+        lastException);
   }
 
   private String getClaudeResponse(Message response) {

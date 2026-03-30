@@ -3,6 +3,7 @@ package com.jobhunter.profile.resume;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
@@ -38,7 +39,7 @@ public class ResumeParser {
       String base64 = Base64.getEncoder().encodeToString(pdfBytes);
 
       return claude.parseResumePdf(base64);
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new RuntimeException("Failed to parse PDF resume: " + e.getMessage(), e);
     }
   }

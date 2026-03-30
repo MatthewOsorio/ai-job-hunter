@@ -1,8 +1,10 @@
 package com.jobhunter.profile.github;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -29,8 +31,9 @@ public class GitHubFetcher {
     try {
       GitHub github = GitHub.connectAnonymously();
       user = github.getUser(username);
-    } catch (Exception e) {
-      Console.error("Failed to connect to GitHub for user: " + username, e);
+    } catch (IOException e) {
+      Console.warn("Failed to connect to GitHub for user: " + username
+          + " — profile will be built without GitHub data");
       return new GitHubProfile(username, new ArrayList<>());
     }
 
@@ -61,17 +64,16 @@ public class GitHubFetcher {
       for (Future<GitHubRepo> future : futures) {
         try {
           repos.add(future.get());
-        } catch (Exception e) {
-          Console.error("Failed to process GitHub repo", e);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          Console.error("GitHub fetch interrupted", e);
+        } catch (ExecutionException e) {
+          Console.error("Failed to process GitHub repo", e.getCause());
         }
       }
 
       return new GitHubProfile(username, repos);
-    } catch (Exception e) {
-      Console.error("Failed to fetch GitHub repos", e);
     }
-
-    return new GitHubProfile(username, new ArrayList<>());
   }
 
 }

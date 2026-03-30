@@ -3,8 +3,17 @@ package com.jobhunter.cli;
 public final class Console {
   private static final String INDENT = "  ";
   private static int lastHeaderWidth = 0;
+  private static boolean verbose = false;
 
   private Console() {}
+
+  public static void setVerbose(boolean v) {
+    verbose = v;
+  }
+
+  public static boolean isVerbose() {
+    return verbose;
+  }
 
   public static void header(String title) {
     lastHeaderWidth = title.length() + 12;
@@ -20,6 +29,10 @@ public final class Console {
     System.out.println(INDENT + "> " + message);
   }
 
+  public static void warn(String message) {
+    System.err.println(INDENT + "[WARN] " + message);
+  }
+
   public static void progress(String tag, String detail) {
     System.out.println(INDENT + "[" + tag + "] " + detail);
   }
@@ -29,7 +42,16 @@ public final class Console {
   }
 
   public static void error(String message, Throwable cause) {
-    System.err.println(INDENT + "[ERROR] " + message + ": " + cause.toString());
+    System.err.println(INDENT + "[ERROR] " + message + ": " + cause.getMessage());
+    if (verbose) {
+      cause.printStackTrace(System.err);
+    }
+  }
+
+  public static void debug(String message) {
+    if (verbose) {
+      System.out.println(INDENT + "[DEBUG] " + message);
+    }
   }
 
   public static void item(String text) {

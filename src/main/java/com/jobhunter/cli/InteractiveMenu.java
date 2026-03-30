@@ -34,7 +34,7 @@ public class InteractiveMenu {
       LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
       loop(terminal, reader);
     } catch (IOException e) {
-      System.err.println("Terminal error: " + e.getMessage());
+      Console.error("Terminal error: " + e.getMessage());
     }
   }
 
@@ -73,7 +73,11 @@ public class InteractiveMenu {
 
       terminal.writer().println();
       terminal.writer().flush();
-      items.get(choice - 1).run(reader);
+      try {
+        items.get(choice - 1).run(reader);
+      } catch (Exception e) {
+        Console.error("Command failed unexpectedly: " + e.getMessage());
+      }
       terminal.writer().println();
       terminal.writer().flush();
     }

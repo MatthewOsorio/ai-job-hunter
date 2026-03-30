@@ -3,6 +3,7 @@ package com.jobhunter.job;
 import java.util.List;
 
 import com.jobhunter.ai.ClaudeService;
+import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Spinner;
 import com.jobhunter.email.EmailService;
 
@@ -56,6 +57,6 @@ public class JobRunner {
       spinner.stop();
     }
 
-    com.jobhunter.cli.Console.status("Hunt job complete!");
+    Console.status("Hunt job complete!");
   }
 }

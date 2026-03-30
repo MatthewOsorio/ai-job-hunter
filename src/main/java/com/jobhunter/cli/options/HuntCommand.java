@@ -5,8 +5,8 @@ import org.jline.reader.LineReader;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Spinner;
+import com.jobhunter.exception.JobHunterException;
 import com.jobhunter.job.JobRunner;
-import com.jobhunter.profile.resume.ResumeNotFoundException;
 
 public class HuntCommand extends MenuItem {
   public HuntCommand(String label, String description, Spinner spinner, ClaudeService claude) {
@@ -18,7 +18,7 @@ public class HuntCommand extends MenuItem {
     try {
       JobRunner jobRunner = new JobRunner(claude, spinner);
       jobRunner.runAll();
-    } catch (ResumeNotFoundException e) {
+    } catch (JobHunterException e) {
       Console.error(e.getMessage());
     }
   }

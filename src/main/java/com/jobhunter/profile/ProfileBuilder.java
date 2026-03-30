@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.ProfileBuildException;
 import com.jobhunter.profile.github.GitHubFetcher;
 import com.jobhunter.profile.github.GitHubProfile;
 import com.jobhunter.profile.resume.ResumeParser;
@@ -57,7 +58,7 @@ public class ProfileBuilder {
       Profile cached = objectMapper.readValue(cachePath.toFile(), Profile.class);
       return Optional.of(cached);
     } catch (IOException e) {
-      Console.error("Profile cache unreadable, rebuilding", e);
+      Console.warn("Profile cache unreadable, rebuilding: " + e.getMessage());
       return Optional.empty();
     }
   }
@@ -91,10 +92,10 @@ public class ProfileBuilder {
       return new Profile(resume, githubProfile);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new RuntimeException("Profile build interrupted", e);
+      throw new ProfileBuildException("Profile build interrupted", e);
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
-      throw new RuntimeException("Profile build failed: " + cause.getMessage(), cause);
+      throw new ProfileBuildException("Profile build failed: " + cause.getMessage(), cause);
     }
   }
 }

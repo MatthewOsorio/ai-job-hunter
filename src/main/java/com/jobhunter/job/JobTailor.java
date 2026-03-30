@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,9 +49,12 @@ public class JobTailor {
       for (JobTask task : tasks) {
         try {
           task.future().get();
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          Console.error("Tailor interrupted for job '" + task.job().getTitle() + "'", e);
+        } catch (ExecutionException e) {
           Console.error("Tailor failed for job '" + task.job().getTitle() + "' at company '"
-              + task.job().getCompany() + "'", e);
+              + task.job().getCompany() + "'", e.getCause());
         }
       }
     }

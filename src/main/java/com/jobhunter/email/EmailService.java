@@ -31,7 +31,7 @@ public class EmailService {
 
   public void sendJobReport(List<Job> matchedJobs, List<Job> failedJobs) {
     if (isBlank(senderEmail) || isBlank(appPassword) || isBlank(recipientEmail)) {
-      Console.status(
+      Console.warn(
           "Email not configured — skipping notification. Set EMAIL_SENDER, APP_PASSWORD, and RECIPIENT_EMAIL in .env");
       return;
     }
@@ -40,7 +40,7 @@ public class EmailService {
     boolean hasFailed = failedJobs != null && !failedJobs.isEmpty();
 
     if (!hasMatches && !hasFailed) {
-      Console.status("No matched or failed jobs — skipping email.");
+      Console.warn("No matched or failed jobs — skipping email.");
       return;
     }
 

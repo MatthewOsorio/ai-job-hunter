@@ -4,6 +4,7 @@ import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 // import com.jobhunter.db.JobRepository;
+import com.jobhunter.exception.ScrapingException;
 import com.jobhunter.scraper.FetchResult;
 import com.jobhunter.scraper.FetchStatus;
 import com.jobhunter.scraper.PageFetcher;
@@ -13,9 +14,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -54,8 +57,11 @@ public class JobScraper {
       for (Future<?> future : futures) {
         try {
           future.get();
-        } catch (Exception e) {
-          Console.error("Thread failed", e);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          Console.error("Scrape interrupted", e);
+        } catch (ExecutionException e) {
+          Console.error("Scrape thread failed", e.getCause());
         }
       }
     }
@@ -72,6 +78,7 @@ public class JobScraper {
     FetchResult fetchResult = pageFetcher.fetch(job.getUrl());
 
     if (fetchResult.getStatus() != FetchStatus.SUCCESS) {
+      Console.warn("Fetch failed for " + job.getUrl() + ": " + fetchResult.getReason());
       result.addFailedJob(job);
       return;
     }
@@ -100,12 +107,12 @@ public class JobScraper {
 
       Element heading = doc.select("h2:contains(software engineer)").first();
       if (heading == null)
-        throw new Exception("Could not find job listings heading for: " + name);
+        throw new ScrapingException("Could not find job listings heading for: " + name);
 
       Element table =
           heading.parent().nextElementSibling().nextElementSibling().select("table").first();
       if (table == null)
-        throw new Exception("Could not find job listings table for: " + name);
+        throw new ScrapingException("Could not find job listings table for: " + name);
 
       String currentCompany = null;
       for (Element row : table.select("tr")) {
@@ -134,7 +141,7 @@ public class JobScraper {
 
         jobs.add(new Job(title, firstCol, link.attr("href")));
       }
-    } catch (Exception e) {
+    } catch (ScrapingException | IOException e) {
       Console.error("Scraping failed for " + name, e);
     }
     return jobs;

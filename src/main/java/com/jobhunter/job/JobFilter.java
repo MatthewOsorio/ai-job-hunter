@@ -3,10 +3,12 @@ package com.jobhunter.job;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.FilterResult;
 import com.jobhunter.cli.Console;
+import com.jobhunter.exception.AiServiceException;
 import com.jobhunter.profile.Profile;
 import com.jobhunter.profile.ProfileBuilder;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -29,8 +31,11 @@ public class JobFilter {
       for (Future<?> future : futures) {
         try {
           future.get();
-        } catch (Exception e) {
-          Console.error("Filter failed", e);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          Console.error("Filter interrupted", e);
+        } catch (ExecutionException e) {
+          Console.error("Filter failed", e.getCause());
         }
       }
     }
@@ -39,8 +44,13 @@ public class JobFilter {
   }
 
   public void filterOne(Job job) {
-    FilterResult result = claudeService.filterJob(profile.toString(), job.getDescription());
-    job.setShouldApply(result.shouldApply());
-    job.setMatchScore(result.matchScore());
+    try {
+      FilterResult result = claudeService.filterJob(profile.toString(), job.getDescription());
+      job.setShouldApply(result.shouldApply());
+      job.setMatchScore(result.matchScore());
+    } catch (AiServiceException e) {
+      Console.warn("Could not filter job '" + job.getTitle() + "': " + e.getMessage());
+      job.setShouldApply(false);
+    }
   }
 }

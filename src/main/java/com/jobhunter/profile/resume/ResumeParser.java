@@ -8,10 +8,11 @@ import java.nio.file.Paths;
 import java.util.Base64;
 
 public class ResumeParser {
-  private static final ClaudeService claude = new ClaudeService();
+  private final ClaudeService claude;
   private final String resumePath;
 
-  public ResumeParser() {
+  public ResumeParser(ClaudeService claude) {
+    this.claude = claude;
     this.resumePath = Main.dotenv.get("RESUME_PATH");
 
     if (resumePath == null || resumePath.isEmpty()) {
@@ -24,20 +25,10 @@ public class ResumeParser {
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
-    if (resumePath.endsWith(".tex")) {
-      return parseLatex(resumePath);
-    } else if (resumePath.endsWith(".pdf")) {
+    if (resumePath.endsWith(".pdf")) {
       return parsePdf(resumePath);
     } else {
-      throw new IllegalArgumentException("Unsupported resume format. Use .tex or .pdf");
-    }
-  }
-
-  private String parseLatex(String path) {
-    try {
-      return claude.parseResumeLatex(Files.readString(Paths.get(path)));
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to parse LaTeX resume: " + e.getMessage(), e);
+      throw new IllegalArgumentException("Unsupported resume format. Use .pdf");
     }
   }
 

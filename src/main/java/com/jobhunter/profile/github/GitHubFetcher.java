@@ -18,7 +18,11 @@ import com.jobhunter.cli.Main;
 public class GitHubFetcher {
   private final List<String> topRepos = Main.config.getStringList("jobhunter.github.repos");
   private final String username = Main.config.getString("jobhunter.github.username");
-  private final ClaudeService claude = new ClaudeService();
+  private final ClaudeService claude;
+
+  public GitHubFetcher(ClaudeService claude) {
+    this.claude = claude;
+  }
 
   public GitHubProfile fetch() {
     GHUser user;

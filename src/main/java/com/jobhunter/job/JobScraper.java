@@ -23,7 +23,11 @@ import java.util.concurrent.Future;
 public class JobScraper {
   private final Config config = Main.config;
   private final PageFetcher pageFetcher = new PageFetcher();
-  private final ClaudeService claudeService = new ClaudeService();
+  private final ClaudeService claudeService;
+
+  public JobScraper(ClaudeService claudeService) {
+    this.claudeService = claudeService;
+  }
   // private final JobRepository repository = new JobRepository();
 
   public JobScraperResult scrape() {
@@ -122,7 +126,7 @@ public class JobScraper {
         Element linkCol = cols.get(3);
         String age = cols.get(4).text().trim();
 
-        if (!age.equals("0d") && !age.equals("1d"))
+        if (!age.equals("0d") && !age.equals("1d") && !age.equals("2d"))
           continue;
 
         Element link = linkCol.select("a").first();

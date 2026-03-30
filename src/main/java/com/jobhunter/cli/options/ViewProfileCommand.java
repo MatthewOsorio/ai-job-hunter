@@ -2,6 +2,7 @@ package com.jobhunter.cli.options;
 
 import org.jline.reader.LineReader;
 
+import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Spinner;
 import com.jobhunter.profile.Profile;
@@ -10,9 +11,10 @@ import com.jobhunter.profile.ProfileBuilder;
 public class ViewProfileCommand extends MenuItem {
   private final ProfileBuilder profileBuilder;
 
-  public ViewProfileCommand(String label, String description, Spinner spinner) {
-    super(label, description, spinner);
-    this.profileBuilder = new ProfileBuilder();
+  public ViewProfileCommand(String label, String description, Spinner spinner,
+      ClaudeService claude) {
+    super(label, description, spinner, claude);
+    this.profileBuilder = new ProfileBuilder(claude);
   }
 
   @Override

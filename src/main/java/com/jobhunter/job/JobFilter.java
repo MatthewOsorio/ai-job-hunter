@@ -13,12 +13,12 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class JobFilter {
-  private final ClaudeService claudeService = new ClaudeService();
+  private final ClaudeService claudeService;
   private final Profile profile;
 
-  public JobFilter() {
-    ProfileBuilder profileBuilder = new ProfileBuilder();
-    this.profile = profileBuilder.getProfile();
+  public JobFilter(ClaudeService claudeService) {
+    this.claudeService = claudeService;
+    this.profile = new ProfileBuilder(claudeService).getProfile();
   }
 
   public List<Job> filter(List<Job> jobs) {

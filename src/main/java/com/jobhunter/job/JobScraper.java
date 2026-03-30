@@ -93,7 +93,6 @@ public class JobScraper {
   private List<Job> scrapeGitHubRepo(String name, String url) {
     List<Job> jobs = new ArrayList<>();
     try {
-      Console.progress("Scraping", name + " (" + url + ")");
       Document doc = Jsoup.connect(url)
           .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")

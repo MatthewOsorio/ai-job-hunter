@@ -16,7 +16,7 @@ public class HuntCommand extends MenuItem {
   @Override
   public void run(LineReader reader) {
     try {
-      JobRunner jobRunner = new JobRunner(claude);
+      JobRunner jobRunner = new JobRunner(claude, spinner);
       jobRunner.runAll();
     } catch (ResumeNotFoundException e) {
       Console.error(e.getMessage());

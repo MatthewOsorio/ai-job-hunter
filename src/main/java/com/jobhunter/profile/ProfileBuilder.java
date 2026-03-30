@@ -1,6 +1,7 @@
 package com.jobhunter.profile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.profile.github.GitHubFetcher;
@@ -18,11 +19,14 @@ import java.util.concurrent.Future;
 
 public class ProfileBuilder {
   private final ObjectMapper objectMapper = new ObjectMapper();
-  private final ResumeParser resumeParser = new ResumeParser();
+  private final ResumeParser resumeParser;
+  private final ClaudeService claude;
   private final Path cachePath;
   private Profile profile;
 
-  public ProfileBuilder() {
+  public ProfileBuilder(ClaudeService claude) {
+    this.claude = claude;
+    this.resumeParser = new ResumeParser(claude);
     String path = Main.config.hasPath("jobhunter.profile.cachePath")
         ? Main.config.getString("jobhunter.profile.cachePath")
         : "profile-cache.json";
@@ -77,7 +81,7 @@ public class ProfileBuilder {
   }
 
   private Profile buildProfile() {
-    GitHubFetcher githubFetcher = new GitHubFetcher();
+    GitHubFetcher githubFetcher = new GitHubFetcher(claude);
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       Future<String> resumeFuture = executor.submit(resumeParser::parse);
       Future<GitHubProfile> githubFuture = executor.submit(githubFetcher::fetch);

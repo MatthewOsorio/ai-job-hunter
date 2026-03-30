@@ -1,6 +1,5 @@
 package com.jobhunter.cli;
 
-import com.jobhunter.cli.Console;
 import com.jobhunter.cli.options.MenuItem;
 import com.jobhunter.cli.options.MenuItemFactory;
 import com.typesafe.config.Config;

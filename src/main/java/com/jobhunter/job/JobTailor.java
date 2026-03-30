@@ -34,8 +34,7 @@ public class JobTailor {
 
     int splitIdx = resumeContent.indexOf("\\begin{document}");
     if (splitIdx == -1) {
-      Console.error("Could not find \\begin{document} in resume — is RESUME_PATH a .tex file?",
-          null);
+      Console.error("Could not find \\begin{document} in resume — is RESUME_PATH a .tex file?");
       return;
     }
     String preamble = resumeContent.substring(0, splitIdx + "\\begin{document}".length());

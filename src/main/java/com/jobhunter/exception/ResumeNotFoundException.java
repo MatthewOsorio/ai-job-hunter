@@ -1,6 +1,4 @@
-package com.jobhunter.profile.resume;
-
-import com.jobhunter.exception.JobHunterException;
+package com.jobhunter.exception;
 
 public class ResumeNotFoundException extends JobHunterException {
   public ResumeNotFoundException(String message) {

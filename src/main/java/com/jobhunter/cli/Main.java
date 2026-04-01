@@ -53,7 +53,7 @@ public class Main implements Runnable {
     String resumePath = dotenv.get("RESUME_PATH");
     if (resumePath == null || resumePath.isEmpty() || !Files.exists(Paths.get(resumePath))) {
       throw new ConfigurationException(
-          "Resume not found. Set RESUME_PATH in your .env file to the path of your .pdf resume");
+          "Resume not found. Set RESUME_PATH in your .env file to the path of your .tex or .docx file");
     }
 
     String targetDir = dotenv.get("TARGET_DIR");

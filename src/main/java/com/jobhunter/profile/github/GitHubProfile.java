@@ -36,12 +36,12 @@ public class GitHubProfile {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("GitHub Profile: ").append(username).append("\n");
+    sb.append("GitHub Profile: ").append(username).append("\n\n");
     sb.append("Top Repositories:\n");
     for (GitHubRepo repo : topRepos) {
-      sb.append("- ").append(repo.getName()).append(": ").append("\n");
-      sb.append("  Languages: ").append(String.join(", ", repo.getLanguages())).append("\n");
-      sb.append("  Summary:\n").append(repo.getSummary()).append("\n");
+      sb.append("  - ").append(repo.getName()).append(":\n");
+      sb.append("    Languages: ").append(String.join(", ", repo.getLanguages())).append("\n");
+      sb.append("    Summary: ").append(repo.getSummary()).append("\n");
     }
     return sb.toString();
   }

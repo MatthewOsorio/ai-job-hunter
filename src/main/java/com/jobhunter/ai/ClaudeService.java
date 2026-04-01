@@ -3,10 +3,8 @@ package com.jobhunter.ai;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.errors.AnthropicServiceException;
-import com.anthropic.models.messages.Base64PdfSource;
 import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.ContentBlockParam;
-import com.anthropic.models.messages.DocumentBlockParam;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.TextBlockParam;
 import com.anthropic.models.messages.MessageCreateParams;
@@ -61,12 +59,9 @@ public class ClaudeService {
     }
   }
 
-  public String parseResumePdf(String encodedResume) {
-    DocumentBlockParam documentBlock = DocumentBlockParam.builder()
-        .source(Base64PdfSource.builder().data(encodedResume).build()).build();
-    List<ContentBlockParam> content =
-        List.of(ContentBlockParam.ofDocument(documentBlock), ContentBlockParam
-            .ofText(TextBlockParam.builder().text(prompts.getString("resume.user")).build()));
+  public String parseResumeTexOrDocx(String resume) {
+    List<ContentBlockParam> content = List.of(ContentBlockParam.ofText(TextBlockParam.builder()
+        .text(prompts.getString("resume.user").replace("{{RESUME_CONTENT}}", resume)).build()));
     return callClaude(Model.of(ai.getString("models.fast")), prompts.getString("resume.system"),
         ai.getLong("maxTokens.resume"), content);
   }

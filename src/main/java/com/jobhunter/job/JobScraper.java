@@ -3,18 +3,14 @@ package com.jobhunter.job;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
-// import com.jobhunter.db.JobRepository;
 import com.jobhunter.exception.ScrapingException;
+import com.jobhunter.job.source.JobSource;
+import com.jobhunter.job.source.JobSourceFactory;
 import com.jobhunter.scraper.FetchResult;
 import com.jobhunter.scraper.FetchStatus;
 import com.jobhunter.scraper.PageFetcher;
 import com.typesafe.config.Config;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,19 +27,19 @@ public class JobScraper {
   public JobScraper(ClaudeService claudeService) {
     this.claudeService = claudeService;
   }
-  // private final JobRepository repository = new JobRepository();
 
-  public JobScraperResult scrape() {
+  public JobScraperResult scrape() throws ScrapingException {
     List<Job> jobs = new ArrayList<>();
 
-    for (Config source : config.getConfigList("jobhunter.sources")) {
-      if (source.getBoolean("enabled")) {
-        jobs.addAll(scrapeGitHubRepo(source.getString("name"), source.getString("url")));
-      }
+    if (!config.hasPath("jobhunter.sources")
+        || config.getConfigList("jobhunter.sources").isEmpty()) {
+      throw new ScrapingException("No job sources configured under 'jobhunter.sources'");
     }
 
-    // // Filter out already-seen URLs
-    // jobs.removeIf(job -> repository.hasBeenSeen(job.getUrl()));
+    for (JobSource source : JobSourceFactory
+        .fromConfig(config.getConfigList("jobhunter.sources"))) {
+      jobs.addAll(source.scrape());
+    }
 
     JobScraperResult results = new JobScraperResult();
 
@@ -68,9 +64,6 @@ public class JobScraper {
 
     pageFetcher.close();
 
-    // // Mark all as seen regardless of extraction success
-    // jobs.forEach(job -> repository.markAsSeen(job.getUrl()));
-
     return results;
   }
 
@@ -90,60 +83,10 @@ public class JobScraper {
         result.addValidJob(job);
       } else {
         result.addFailedJob(job);
-      } ;
+      }
     } else {
       job.setDescription(fetchResult.getContent());
       result.addValidJob(job);
     }
-  }
-
-  private List<Job> scrapeGitHubRepo(String name, String url) {
-    List<Job> jobs = new ArrayList<>();
-    try {
-      Document doc = Jsoup.connect(url)
-          .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-              + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-          .timeout(10_000).get();
-
-      Element heading = doc.select("h2:contains(software engineer)").first();
-      if (heading == null)
-        throw new ScrapingException("Could not find job listings heading for: " + name);
-
-      Element table =
-          heading.parent().nextElementSibling().nextElementSibling().select("table").first();
-      if (table == null)
-        throw new ScrapingException("Could not find job listings table for: " + name);
-
-      String currentCompany = null;
-      for (Element row : table.select("tr")) {
-        if (!row.select("th").isEmpty())
-          continue;
-
-        Elements cols = row.select("td");
-        String firstCol = cols.get(0).text().trim();
-
-        if (firstCol.equals("↳")) {
-          firstCol = currentCompany;
-        } else {
-          currentCompany = firstCol;
-        }
-
-        String title = cols.get(1).text().trim().replaceAll("[^\\x00-\\x7F]", "-");
-        Element linkCol = cols.get(3);
-        String age = cols.get(4).text().trim();
-
-        if (!age.equals("0d") && !age.equals("1d") && !age.equals("2d"))
-          continue;
-
-        Element link = linkCol.select("a").first();
-        if (link == null)
-          continue;
-
-        jobs.add(new Job(title, firstCol, link.attr("href")));
-      }
-    } catch (ScrapingException | IOException e) {
-      Console.error("Scraping failed for " + name, e);
-    }
-    return jobs;
   }
 }

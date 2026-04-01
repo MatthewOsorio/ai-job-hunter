@@ -2,11 +2,15 @@ package com.jobhunter.profile.resume;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.ResumeNotFoundException;
+import com.jobhunter.utils.Utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Base64;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 public class ResumeParser {
   private final ClaudeService claude;
@@ -26,21 +30,25 @@ public class ResumeParser {
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
-    if (resumePath.toLowerCase().endsWith(".pdf")) {
-      return parsePdf(resumePath);
-    } else {
-      throw new IllegalArgumentException("Unsupported resume format. Use .pdf");
-    }
+    Utils.getFileType(resumePath);
+    return parseResume(resumePath);
   }
 
-  private String parsePdf(String path) {
+  private String parseResume(String path) {
     try {
-      byte[] pdfBytes = Files.readAllBytes(Paths.get(path));
-      String base64 = Base64.getEncoder().encodeToString(pdfBytes);
-
-      return claude.parseResumePdf(base64);
+      String resumeText;
+      if ("tex".equals(Utils.getFileType(path))) {
+        resumeText = Utils.extractLatexPair(Files.readString(Paths.get(path))).getBody();
+      } else {
+        try (InputStream is = Files.newInputStream(Paths.get(path));
+            XWPFDocument doc = new XWPFDocument(is);
+            XWPFWordExtractor extractor = new XWPFWordExtractor(doc)) {
+          resumeText = extractor.getText();
+        }
+      }
+      return claude.parseResumeTexOrDocx(resumeText);
     } catch (IOException e) {
-      throw new RuntimeException("Failed to parse PDF resume: " + e.getMessage(), e);
+      throw new RuntimeException("Failed to read resume file at: " + path, e);
     }
   }
 }

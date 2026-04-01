@@ -82,14 +82,24 @@ public class ProfileBuilder {
   }
 
   private Profile buildProfile() {
-    GitHubFetcher githubFetcher = new GitHubFetcher(claude);
+    GitHubFetcher githubFetcher = null;
+
+    if (isGithubAvailable()) {
+      githubFetcher = new GitHubFetcher(claude);
+    }
+
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       Future<String> resumeFuture = executor.submit(resumeParser::parse);
-      Future<GitHubProfile> githubFuture = executor.submit(githubFetcher::fetch);
 
-      String resume = resumeFuture.get();
-      GitHubProfile githubProfile = githubFuture.get();
-      return new Profile(resume, githubProfile);
+      if (githubFetcher != null) {
+        Future<GitHubProfile> githubFuture = executor.submit(githubFetcher::fetch);
+        String resume = resumeFuture.get();
+        GitHubProfile githubProfile = githubFuture.get();
+        return new Profile(resume, githubProfile);
+      } else {
+        String resume = resumeFuture.get();
+        return new Profile(resume, null);
+      }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new ProfileBuildException("Profile build interrupted", e);
@@ -97,5 +107,16 @@ public class ProfileBuilder {
       Throwable cause = e.getCause();
       throw new ProfileBuildException("Profile build failed: " + cause.getMessage(), cause);
     }
+  }
+
+  private boolean isGithubAvailable() {
+    boolean hasUsername = Main.config.hasPath("jobhunter.github.username");
+    boolean hasRepos = Main.config.hasPath("jobhunter.github.repos");
+    if (Main.config.hasPath("jobhunter.github") && !(hasUsername && hasRepos)) {
+      Console.warn(
+          "GitHub config is incomplete (missing username or repos) - skipping GitHub profile");
+      return false;
+    }
+    return hasUsername && hasRepos;
   }
 }

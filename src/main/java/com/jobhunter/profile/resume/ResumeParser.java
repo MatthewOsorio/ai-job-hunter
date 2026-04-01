@@ -2,11 +2,12 @@ package com.jobhunter.profile.resume;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.ResumeNotFoundException;
+import com.jobhunter.utils.Utils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Base64;
 
 public class ResumeParser {
   private final ClaudeService claude;
@@ -26,7 +27,7 @@ public class ResumeParser {
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
-    String fileType = getFileType(resumePath);
+    String fileType = Utils.getFileType(resumePath);
     if ("tex".equals(fileType) || "docx".equals(fileType)) {
       return parseResume(resumePath);
     } else {
@@ -36,19 +37,15 @@ public class ResumeParser {
 
   private String parseResume(String path) {
     try {
-      byte[] fileBytes = Files.readAllBytes(Paths.get(path));
+      String resumeText = Files.readString(Paths.get(path));
 
-      return claude.parseResumePdf(base64);
+      if ("tex".equals(Utils.getFileType(path))) {
+        resumeText = Utils.extractLatexPair(resumeText).getBody();
+      }
+
+      return claude.parseResumeTexOrDocx(resumeText);
     } catch (IOException e) {
-      throw new RuntimeException("Failed to parse PDF resume: " + e.getMessage(), e);
+      throw new RuntimeException("Failed to read resume file at: " + path, e);
     }
-  }
-
-  private String getFileType(String path) {
-    if (path.toLowerCase().endsWith(".tex"))
-      return "tex";
-    if (path.toLowerCase().endsWith(".docx"))
-      return "docx";
-    throw new IllegalArgumentException("Unsupported file type for resume: " + path);
   }
 }

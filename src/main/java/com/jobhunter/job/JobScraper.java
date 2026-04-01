@@ -31,7 +31,8 @@ public class JobScraper {
   public JobScraperResult scrape() throws ScrapingException {
     List<Job> jobs = new ArrayList<>();
 
-    if (!config.hasPath("jobhunter.sources") || config.getConfigList("jobhunter.sources").isEmpty()) {
+    if (!config.hasPath("jobhunter.sources")
+        || config.getConfigList("jobhunter.sources").isEmpty()) {
       throw new ScrapingException("No job sources configured under 'jobhunter.sources'");
     }
 

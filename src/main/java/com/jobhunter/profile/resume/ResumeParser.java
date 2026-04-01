@@ -26,21 +26,29 @@ public class ResumeParser {
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
-    if (resumePath.toLowerCase().endsWith(".pdf")) {
-      return parsePdf(resumePath);
+    String fileType = getFileType(resumePath);
+    if ("tex".equals(fileType) || "docx".equals(fileType)) {
+      return parseResume(resumePath);
     } else {
-      throw new IllegalArgumentException("Unsupported resume format. Use .pdf");
+      throw new IllegalArgumentException("Unsupported resume format. Use .tex or .docx");
     }
   }
 
-  private String parsePdf(String path) {
+  private String parseResume(String path) {
     try {
-      byte[] pdfBytes = Files.readAllBytes(Paths.get(path));
-      String base64 = Base64.getEncoder().encodeToString(pdfBytes);
+      byte[] fileBytes = Files.readAllBytes(Paths.get(path));
 
       return claude.parseResumePdf(base64);
     } catch (IOException e) {
       throw new RuntimeException("Failed to parse PDF resume: " + e.getMessage(), e);
     }
+  }
+
+  private String getFileType(String path) {
+    if (path.toLowerCase().endsWith(".tex"))
+      return "tex";
+    if (path.toLowerCase().endsWith(".docx"))
+      return "docx";
+    throw new IllegalArgumentException("Unsupported file type for resume: " + path);
   }
 }

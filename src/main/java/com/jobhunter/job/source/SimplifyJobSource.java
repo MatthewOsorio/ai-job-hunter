@@ -42,9 +42,14 @@ public class SimplifyJobSource extends JobSource {
           continue;
 
         Elements cols = row.select("td");
+        if (cols.size() < 5)
+          continue;
+
         String firstCol = cols.get(0).text().trim();
 
         if (firstCol.equals("↳")) {
+          if (currentCompany == null)
+            continue;
           firstCol = currentCompany;
         } else {
           currentCompany = firstCol;

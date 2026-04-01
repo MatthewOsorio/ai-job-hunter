@@ -8,7 +8,7 @@ public final class Console {
   private Console() {}
 
   private static void clearLine() {
-    System.out.print("\r" + " ".repeat(80) + "\r");
+    System.out.print("\r\033[2K");
     System.out.flush();
   }
 

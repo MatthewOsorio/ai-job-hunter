@@ -6,8 +6,11 @@ import com.jobhunter.exception.ResumeNotFoundException;
 import com.jobhunter.utils.Utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 public class ResumeParser {
   private final ClaudeService claude;
@@ -27,22 +30,22 @@ public class ResumeParser {
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
-    String fileType = Utils.getFileType(resumePath);
-    if ("tex".equals(fileType) || "docx".equals(fileType)) {
-      return parseResume(resumePath);
-    } else {
-      throw new IllegalArgumentException("Unsupported resume format. Use .tex or .docx");
-    }
+    Utils.getFileType(resumePath);
+    return parseResume(resumePath);
   }
 
   private String parseResume(String path) {
     try {
-      String resumeText = Files.readString(Paths.get(path));
-
+      String resumeText;
       if ("tex".equals(Utils.getFileType(path))) {
-        resumeText = Utils.extractLatexPair(resumeText).getBody();
+        resumeText = Utils.extractLatexPair(Files.readString(Paths.get(path))).getBody();
+      } else {
+        try (InputStream is = Files.newInputStream(Paths.get(path));
+            XWPFDocument doc = new XWPFDocument(is);
+            XWPFWordExtractor extractor = new XWPFWordExtractor(doc)) {
+          resumeText = extractor.getText();
+        }
       }
-
       return claude.parseResumeTexOrDocx(resumeText);
     } catch (IOException e) {
       throw new RuntimeException("Failed to read resume file at: " + path, e);

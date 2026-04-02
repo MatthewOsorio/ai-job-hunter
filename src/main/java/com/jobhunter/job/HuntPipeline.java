@@ -7,21 +7,19 @@ import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Spinner;
 import com.jobhunter.email.EmailService;
 
-public class JobRunner {
+public class HuntPipeline {
   private final JobScraper jobScraper;
   private final JobFilter jobFilter;
   private final JobTailor jobTailor;
   private final EmailService emailService;
-  private final ClaudeService claude;
   private final Spinner spinner;
 
-  public JobRunner(ClaudeService claude, Spinner spinner) {
-    this.claude = claude;
-    this.spinner = spinner;
-    this.jobScraper = new JobScraper(this.claude);
-    this.jobFilter = new JobFilter(this.claude);
-    this.jobTailor = new JobTailor(this.claude, spinner);
+  public HuntPipeline(ClaudeService claude, Spinner spinner) {
+    this.jobScraper = new JobScraper(claude);
+    this.jobFilter = new JobFilter(claude);
+    this.jobTailor = new JobTailor(claude, spinner);
     this.emailService = new EmailService();
+    this.spinner = spinner;
   }
 
   public void runAll() {

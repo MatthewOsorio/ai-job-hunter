@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,23 +26,24 @@ public class JobTailor {
     this.claudeService = claudeService;
   }
 
-  public void tailor(List<Job> jobs) {
+  public List<Path> tailor(List<Job> jobs) {
     String resumeContent;
     try {
       resumeContent = Files.readString(Paths.get(resumePath));
     } catch (IOException e) {
       Console.error("Failed to read resume from " + resumePath, e);
-      return;
+      return List.of();
     }
 
     int splitIdx = resumeContent.indexOf("\\begin{document}");
     if (splitIdx == -1) {
       Console.error("Could not find \\begin{document} in resume — is RESUME_PATH a .tex file?");
-      return;
+      return List.of();
     }
     String preamble = resumeContent.substring(0, splitIdx + "\\begin{document}".length());
     String body = resumeContent.substring(splitIdx + "\\begin{document}".length());
 
+    List<Path> outputs = new ArrayList<>();
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       List<JobTask> tasks = jobs.stream()
           .map(job -> new JobTask(job, executor.submit(() -> tailorOne(job, preamble, body))))
@@ -48,7 +51,7 @@ public class JobTailor {
 
       for (JobTask task : tasks) {
         try {
-          task.future().get();
+          task.future().get().ifPresent(outputs::add);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           Console.error("Tailor interrupted for job '" + task.job().getTitle() + "'", e);
@@ -58,18 +61,20 @@ public class JobTailor {
         }
       }
     }
+    return outputs;
   }
 
-  private record JobTask(Job job, Future<?> future) {}
+  private record JobTask(Job job, Future<Optional<Path>> future) {}
 
-  private void tailorOne(Job job, String preamble, String body) {
+  private Optional<Path> tailorOne(Job job, String preamble, String body) {
     try {
       String tailoredBody = claudeService.tailorResumeTex(body, job.getDescription(), null);
       String fullTex = preamble + "\n" + tailoredBody;
-      writeOutput(job, fullTex);
+      return Optional.of(writeOutput(job, fullTex));
     } catch (IOException e) {
       Console.error("Error writing tailored resume for " + job.getTitle() + ": " + e.getMessage(),
           e);
+      return Optional.empty();
     }
   }
 

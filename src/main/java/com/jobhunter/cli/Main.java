@@ -66,8 +66,8 @@ public class Main implements Runnable {
   @Override
   public void run() {
     MenuItemFactory factory = new MenuItemFactory();
-    List<MenuItem> menuItems =
-        List.of(factory.createMenuItem("hunt"), factory.createMenuItem("view-profile"));
+    List<MenuItem> menuItems = List.of(factory.createMenuItem("hunt"),
+        factory.createMenuItem("hunt-one"), factory.createMenuItem("view-profile"));
 
     new InteractiveMenu(menuItems).show();
   }

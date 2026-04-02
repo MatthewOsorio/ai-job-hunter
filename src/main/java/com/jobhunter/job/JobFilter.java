@@ -23,6 +23,11 @@ public class JobFilter {
     this.profile = new ProfileBuilder(claudeService).getProfile();
   }
 
+  public JobFilter(ClaudeService claudeService, Profile profile) {
+    this.claudeService = claudeService;
+    this.profile = profile;
+  }
+
   public List<Job> filter(List<Job> jobs) {
     try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
       List<Future<?>> futures = jobs.stream().map(job -> executor.submit(() -> filterOne(job)))

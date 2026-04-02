@@ -44,7 +44,7 @@ public class ClaudeService {
     this.apiSemaphore = new Semaphore(concurrency);
   }
 
-  public Optional<String> extractJobDescription(String pageContent) {
+  public Optional<ExtractionResult> extractJobDescription(String pageContent) {
     List<ContentBlockParam> content = List.of(ContentBlockParam.ofText(TextBlockParam.builder()
         .text(prompts.getString("extraction.user").replace("{{PAGE_CONTENT}}", pageContent))
         .build()));
@@ -52,7 +52,7 @@ public class ClaudeService {
         prompts.getString("extraction.system"), ai.getLong("maxTokens.extraction"), content);
     try {
       ExtractionResult result = objectMapper.readValue(raw, ExtractionResult.class);
-      return result.found() ? Optional.of(result.description()) : Optional.empty();
+      return result.found() ? Optional.of(result) : Optional.empty();
     } catch (JsonProcessingException e) {
       Console.error("Failed to parse extraction response", e);
       return Optional.empty();

@@ -36,20 +36,26 @@ public class ViewProfileCommand extends MenuItem {
     Console.println(profile.toString());
     Console.footer();
 
-    String answer =
-        reader.readLine("  Would you like to rebuild your profile? (y/n): ").trim().toLowerCase();
-    if (answer.equals("y") || answer.equals("yes")) {
-      spinner.start("Rebuilding profile ");
-      Profile rebuilt;
-      try {
-        rebuilt = profileBuilder.rebuildProfile();
-      } finally {
-        spinner.stop();
-      }
+    while (true) {
+      String answer =
+          reader.readLine("  Would you like to rebuild your profile? (y/n): ").trim().toLowerCase();
+      if (answer.equals("y")) {
+        spinner.start("Rebuilding profile ");
+        Profile rebuilt;
+        try {
+          rebuilt = profileBuilder.rebuildProfile();
+        } finally {
+          spinner.stop();
+        }
 
-      Console.header("New Profile");
-      Console.println(rebuilt.toString());
-      Console.footer();
+        Console.header("New Profile");
+        Console.println(rebuilt.toString());
+        Console.footer();
+        break;
+      } else if (answer.equals("n")) {
+        break;
+      }
+      Console.println("Invalid input. Please enter y or n");
     }
   }
 }

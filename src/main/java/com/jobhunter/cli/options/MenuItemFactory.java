@@ -21,6 +21,8 @@ public class MenuItemFactory {
           spinner, claude);
       case "view-profile" -> new ViewProfileCommand("View Profile",
           "View your profile and optionally rebuild it", spinner, claude);
+      case "hunt-one" -> new HuntOneCommand("Hunt Single Job",
+          "Scrape a single job URL, filter it, and optionally tailor your resume", spinner, claude);
       default -> throw new IllegalArgumentException("Unknown menu item: " + itemName);
     };
   }

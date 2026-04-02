@@ -6,7 +6,7 @@ import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Spinner;
 import com.jobhunter.exception.JobHunterException;
-import com.jobhunter.job.JobRunner;
+import com.jobhunter.job.HuntPipeline;
 
 public class HuntCommand extends MenuItem {
   public HuntCommand(String label, String description, Spinner spinner, ClaudeService claude) {
@@ -16,8 +16,8 @@ public class HuntCommand extends MenuItem {
   @Override
   public void run(LineReader reader) {
     try {
-      JobRunner jobRunner = new JobRunner(claude, spinner);
-      jobRunner.runAll();
+      HuntPipeline huntPipeline = new HuntPipeline(claude, spinner);
+      huntPipeline.runAll();
     } catch (JobHunterException e) {
       Console.error(e.getMessage(), e);
     }

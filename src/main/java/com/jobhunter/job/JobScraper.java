@@ -1,6 +1,7 @@
 package com.jobhunter.job;
 
 import com.jobhunter.ai.ClaudeService;
+import com.jobhunter.ai.ExtractionResult;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.exception.ScrapingException;
@@ -67,6 +68,37 @@ public class JobScraper {
     return results;
   }
 
+  public Optional<Job> scrapeOne(String url) {
+    FetchResult fetchResult = pageFetcher.fetch(url);
+
+    if (fetchResult.getStatus() != FetchStatus.SUCCESS) {
+      return Optional.empty();
+    }
+
+    String description;
+    String title = "Unknown";
+    String company = "Unknown";
+    if (fetchResult.needsExtraction()) {
+      Optional<ExtractionResult> extracted =
+          claudeService.extractJobDescription(fetchResult.getContent());
+      if (extracted.isEmpty()) {
+        return Optional.empty();
+      }
+      ExtractionResult ext = extracted.get();
+      description = ext.description();
+      if (ext.title() != null)
+        title = ext.title();
+      if (ext.company() != null)
+        company = ext.company();
+    } else {
+      description = fetchResult.getContent();
+    }
+
+    Job job = new Job(title, company, url);
+    job.setDescription(description);
+    return Optional.of(job);
+  }
+
   public void processJob(Job job, JobScraperResult result) {
     FetchResult fetchResult = pageFetcher.fetch(job.getUrl());
 
@@ -77,9 +109,10 @@ public class JobScraper {
     }
 
     if (fetchResult.needsExtraction()) {
-      Optional<String> desc = claudeService.extractJobDescription(fetchResult.getContent());
+      Optional<ExtractionResult> desc =
+          claudeService.extractJobDescription(fetchResult.getContent());
       if (desc.isPresent()) {
-        job.setDescription(desc.get());
+        job.setDescription(desc.get().description());
         result.addValidJob(job);
       } else {
         result.addFailedJob(job);

@@ -62,6 +62,20 @@ public class ClaudeService {
     }
   }
 
+  public Optional<JobMetaResult> extractJobMeta(String pageContent) {
+    List<ContentBlockParam> content = List.of(ContentBlockParam.ofText(TextBlockParam.builder()
+        .text(prompts.getString("jobMeta.user").replace("{{PAGE_CONTENT}}", pageContent)).build()));
+    String raw = callClaude(FAST_MODEL, prompts.getString("jobMeta.system"),
+        ai.getLong("maxTokens.extraction"), content);
+    try {
+      JobMetaResult result = objectMapper.readValue(raw, JobMetaResult.class);
+      return Optional.of(result);
+    } catch (JsonProcessingException e) {
+      Console.error("Failed to parse job meta response", e);
+      return Optional.empty();
+    }
+  }
+
   public String parseResumeTexOrDocx(String resume) {
     List<ContentBlockParam> content = List.of(ContentBlockParam.ofText(TextBlockParam.builder()
         .text(prompts.getString("resume.user").replace("{{RESUME_CONTENT}}", resume)).build()));

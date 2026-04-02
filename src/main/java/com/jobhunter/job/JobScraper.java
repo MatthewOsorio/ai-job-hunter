@@ -69,6 +69,15 @@ public class JobScraper {
     return results;
   }
 
+  public Optional<Job> scrapeOne(String url) {
+    Job job = new Job(null, null, url);
+    JobScraperResult result = new JobScraperResult();
+    processJob(job, result);
+    pageFetcher.close();
+    return result.getValidJobs().isEmpty() ? Optional.empty()
+        : Optional.of(result.getValidJobs().get(0));
+  }
+
   public void processJob(Job job, JobScraperResult result) {
     FetchResult fetchResult = pageFetcher.fetch(job.getUrl());
 

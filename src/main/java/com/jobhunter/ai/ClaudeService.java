@@ -107,13 +107,9 @@ public class ClaudeService {
         ai.getLong("maxTokens.readme"), content);
   }
 
-  public String tailorResumeTex(String texContent, String jobDescription,
-      String pageCountFeedback) {
+  public String tailorResumeTex(String texContent, String jobDescription) {
     String userPrompt = prompts.getString("tailor.user-tex").replace("{{TEX_CONTENT}}", texContent)
         .replace("{{JOB_POSTING}}", jobDescription);
-    if (pageCountFeedback != null && !pageCountFeedback.isBlank()) {
-      userPrompt += "\n\n## Page Constraint Feedback:\n" + pageCountFeedback;
-    }
     List<ContentBlockParam> content =
         List.of(ContentBlockParam.ofText(TextBlockParam.builder().text(userPrompt).build()));
     return callClaude(STRONG_MODEL, prompts.getString("tailor.system-tex"),

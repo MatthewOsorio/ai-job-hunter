@@ -59,7 +59,7 @@ public class SimplifyJobSource extends JobSource {
         Element linkCol = cols.get(3);
         String age = cols.get(4).text().trim();
 
-        if (!age.equals("0d") && !age.equals("1d") && !age.equals("2d"))
+        if (!age.equals("0d") && !age.equals("1d"))
           continue;
 
         Element link = linkCol.select("a").first();

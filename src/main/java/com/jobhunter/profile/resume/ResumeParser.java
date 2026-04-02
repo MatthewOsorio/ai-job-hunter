@@ -2,6 +2,7 @@ package com.jobhunter.profile.resume;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.ProfileBuildException;
 import com.jobhunter.exception.ResumeNotFoundException;
 import com.jobhunter.utils.Utils;
 
@@ -48,7 +49,7 @@ public class ResumeParser {
       }
       return claude.parseResumeTexOrDocx(resumeText);
     } catch (IOException e) {
-      throw new RuntimeException("Failed to read resume file at: " + path, e);
+      throw new ProfileBuildException("Failed to read resume file at: " + path, e);
     }
   }
 }

@@ -19,6 +19,8 @@ public class BrowserPool {
       Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
       pool.add(new BrowserInstance(pw, browser));
     }
+
+    Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
   }
 
   public BrowserInstance borrow() throws InterruptedException {

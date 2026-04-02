@@ -1,7 +1,9 @@
 package com.jobhunter.cli;
 
 public class Spinner {
-  private static final String[] FRAMES = {"|", "/", "-", "\\"};
+  private static final String CYAN = "\033[96m";
+  private static final String RESET = "\033[0m";
+  private static final String[] FRAMES = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
 
   private Thread thread;
   private volatile String currentMessage = "";
@@ -14,7 +16,7 @@ public class Spinner {
     thread = new Thread(() -> {
       int i = 0;
       while (!Thread.currentThread().isInterrupted()) {
-        System.out.print("\r  " + currentMessage + " " + FRAMES[i % FRAMES.length]);
+        System.out.print("\r  " + CYAN + FRAMES[i % FRAMES.length] + RESET + " " + currentMessage);
         System.out.flush();
         i++;
         try {

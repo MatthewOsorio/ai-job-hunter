@@ -35,19 +35,17 @@ public class HuntOneCommand extends MenuItem {
     while (true) {
       jobUrl = reader.readLine("  Enter the job URL to hunt: ").trim();
       if (jobUrl.isEmpty()) {
-        Console.println("  Invalid input. Please enter a job URL.");
+        Console.warn("Invalid input. Please enter a job URL.");
         continue;
       }
       try {
         URI uri = new URI(jobUrl);
         if (uri.getScheme() == null || uri.getHost() == null) {
-          Console.println(
-              "  Invalid URL. Please enter a full URL (e.g., https://example.com/job/123).");
+          Console.warn("Invalid URL. Please enter a full URL (e.g., https://example.com/job/123).");
           continue;
         }
       } catch (URISyntaxException e) {
-        Console
-            .println("  Invalid URL. Please enter a full URL (e.g., https://example.com/job/123).");
+        Console.warn("Invalid URL. Please enter a full URL (e.g., https://example.com/job/123).");
         continue;
       }
       break;
@@ -65,7 +63,7 @@ public class HuntOneCommand extends MenuItem {
     }
 
     if (maybeJob.isEmpty()) {
-      Console.println("  Could not fetch or extract job description.");
+      Console.status("Could not fetch or extract job description.");
       return;
     }
 
@@ -110,7 +108,7 @@ public class HuntOneCommand extends MenuItem {
       } else if (answer.equalsIgnoreCase("n")) {
         break;
       } else {
-        Console.println("  Invalid input. Please enter y or n.");
+        Console.warn("Invalid input. Please enter y or n.");
       }
     }
   }

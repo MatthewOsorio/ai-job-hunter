@@ -44,7 +44,7 @@ public class InteractiveMenu {
 
       String input;
       try {
-        input = reader.readLine("  Select an option: ").trim();
+        input = reader.readLine("\033[96m  ▶\033[0m  Select: ").trim();
       } catch (UserInterruptException e) {
         break;
       }
@@ -53,20 +53,21 @@ public class InteractiveMenu {
       try {
         choice = Integer.parseInt(input);
       } catch (NumberFormatException e) {
-        terminal.writer().println("\n  Invalid input. Please enter a number.\n");
+        terminal.writer().println("\n  \033[93m⚠ \033[0m  Invalid input. Please enter a number.\n");
         terminal.writer().flush();
         continue;
       }
 
       int exitChoice = items.size() + 1;
       if (choice == exitChoice) {
-        terminal.writer().println("\n  Goodbye!\n");
+        terminal.writer().println("\n  \033[96m▸\033[0m  Goodbye!\n");
         terminal.writer().flush();
         break;
       }
 
       if (choice < 1 || choice > items.size()) {
-        terminal.writer().println("\n  Invalid option. Choose between 1 and " + exitChoice + ".\n");
+        terminal.writer().println(
+            "\n  \033[93m⚠ \033[0m  Invalid option. Choose between 1 and " + exitChoice + ".\n");
         terminal.writer().flush();
         continue;
       }
@@ -84,12 +85,20 @@ public class InteractiveMenu {
   }
 
   private void printMenu(Terminal terminal) {
-    terminal.writer().println(BANNER);
+    terminal.writer().println("\033[96m\033[1m" + BANNER + "\033[0m");
+    terminal.writer().println("  \033[90mAI-Powered Job Application Assistant\033[0m");
+    terminal.writer().println();
+    terminal.writer().println(
+        "  \033[93m⚠  AI outputs may be imperfect. Always review results before applying.\033[0m");
+    terminal.writer().println();
     for (int i = 0; i < items.size(); i++) {
       MenuItem item = items.get(i);
-      terminal.writer().printf("  [%d] %-20s %s%n", i + 1, item.label(), item.description());
+      terminal.writer().printf(
+          "  \033[96m\033[1m[%d]\033[0m \033[1m%-20s\033[0m \033[90m%s\033[0m%n", i + 1,
+          item.label(), item.description());
     }
-    terminal.writer().printf("  [%d] Exit%n%n", items.size() + 1);
+    terminal.writer().printf("  \033[96m\033[1m[%d]\033[0m \033[1m%-20s\033[0m%n%n",
+        items.size() + 1, "Exit");
     terminal.writer().flush();
   }
 }

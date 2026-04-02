@@ -2,6 +2,7 @@ package com.jobhunter.job;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.ExtractionResult;
+import com.jobhunter.ai.JobMetaResult;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.exception.ScrapingException;
@@ -82,6 +83,13 @@ public class JobScraper {
           claudeService.extractJobDescription(fetchResult.getContent());
       if (desc.isPresent()) {
         job.setDescription(desc.get().description());
+        Optional<JobMetaResult> meta = claudeService.extractJobMeta(fetchResult.getContent());
+        meta.ifPresent(m -> {
+          if (m.title() != null)
+            job.setTitle(m.title());
+          if (m.company() != null)
+            job.setCompany(m.company());
+        });
         result.addValidJob(job);
       } else {
         result.addFailedJob(job);

@@ -1,6 +1,7 @@
 package com.jobhunter.job.source;
 
-import com.jobhunter.cli.Console;
+import com.jobhunter.cli.Main;
+
 import com.jobhunter.exception.ScrapingException;
 import com.jobhunter.job.Job;
 import org.jsoup.Jsoup;
@@ -69,7 +70,7 @@ public class SimplifyJobSource extends JobSource {
         jobs.add(new Job(title, firstCol, link.attr("href")));
       }
     } catch (ScrapingException | IOException e) {
-      Console.error("Scraping failed for " + getName(), e);
+      Main.console.error("Scraping failed for " + getName(), e);
     }
     return jobs;
   }

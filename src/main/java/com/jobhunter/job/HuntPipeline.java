@@ -1,10 +1,11 @@
 package com.jobhunter.job;
 
+import com.jobhunter.cli.Main;
+
 import java.util.List;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
-import com.jobhunter.cli.Spinner;
 import com.jobhunter.email.EmailService;
 
 public class HuntPipeline {
@@ -12,49 +13,49 @@ public class HuntPipeline {
   private final JobFilter jobFilter;
   private final JobTailor jobTailor;
   private final EmailService emailService;
-  private final Spinner spinner;
+  private final Console console;
 
-  public HuntPipeline(ClaudeService claude, Spinner spinner) {
+  public HuntPipeline(ClaudeService claude, Console console) {
     this.jobScraper = new JobScraper(claude);
     this.jobFilter = new JobFilter(claude);
-    this.jobTailor = new JobTailor(claude, spinner);
+    this.jobTailor = new JobTailor(claude);
     this.emailService = new EmailService();
-    this.spinner = spinner;
+    this.console = console;
   }
 
   public void runAll() {
     JobScraperResult result;
-    spinner.start("Scraping jobs ");
+    console.spinnerStart("Scraping jobs ");
     try {
       result = jobScraper.scrape();
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
     List<Job> validJobs = result.getValidJobs();
 
     List<Job> filteredJobs;
-    spinner.start("Filtering jobs ");
+    console.spinnerStart("Filtering jobs ");
     try {
       filteredJobs = jobFilter.filter(validJobs);
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
-    spinner.start("Tailoring resumes ");
+    console.spinnerStart("Tailoring resumes ");
     try {
       jobTailor.tailor(filteredJobs);
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
-    spinner.start("Sending email report ");
+    console.spinnerStart("Sending email report ");
     try {
       emailService.sendJobReport(filteredJobs, result.getFailedJobs());
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
-    Console.status("Hunt job complete!");
+    Main.console.status("Hunt job complete!");
   }
 }

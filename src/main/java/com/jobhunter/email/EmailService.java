@@ -1,6 +1,5 @@
 package com.jobhunter.email;
 
-import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.job.Job;
 import jakarta.mail.Authenticator;
@@ -31,7 +30,7 @@ public class EmailService {
 
   public void sendJobReport(List<Job> matchedJobs, List<Job> failedJobs) {
     if (isBlank(senderEmail) || isBlank(appPassword) || isBlank(recipientEmail)) {
-      Console.warn(
+      Main.console.warn(
           "Email not configured — skipping notification. Set EMAIL_SENDER, APP_PASSWORD, and RECIPIENT_EMAIL in .env");
       return;
     }
@@ -40,7 +39,7 @@ public class EmailService {
     boolean hasFailed = failedJobs != null && !failedJobs.isEmpty();
 
     if (!hasMatches && !hasFailed) {
-      Console.warn("No matched or failed jobs — skipping email.");
+      Main.console.warn("No matched or failed jobs — skipping email.");
       return;
     }
 
@@ -53,9 +52,9 @@ public class EmailService {
           + LocalDate.now().format(DateTimeFormatter.ofPattern("MMMM d, yyyy")));
       message.setContent(buildHtmlBody(matchedJobs, failedJobs), "text/html; charset=utf-8");
       Transport.send(message);
-      Console.status("Email report sent to " + recipientEmail);
+      Main.console.status("Email report sent to " + recipientEmail);
     } catch (MessagingException e) {
-      Console.error("Failed to send email notification", e);
+      Main.console.error("Failed to send email notification", e);
     }
   }
 

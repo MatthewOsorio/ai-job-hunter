@@ -9,12 +9,16 @@ import com.microsoft.playwright.Playwright;
 
 public class BrowserPool {
   private final BlockingQueue<BrowserInstance> pool;
-  private static final int DEFAULT_POOL_SIZE = 5;
+  public static final int DEFAULT_POOL_SIZE = 5;
 
   public BrowserPool() {
-    this.pool = new LinkedBlockingQueue<>(DEFAULT_POOL_SIZE);
+    this(DEFAULT_POOL_SIZE);
+  }
 
-    for (int i = 0; i < DEFAULT_POOL_SIZE; i++) {
+  public BrowserPool(int poolSize) {
+    this.pool = new LinkedBlockingQueue<>(poolSize);
+
+    for (int i = 0; i < poolSize; i++) {
       Playwright pw = Playwright.create();
       Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
       pool.add(new BrowserInstance(pw, browser));

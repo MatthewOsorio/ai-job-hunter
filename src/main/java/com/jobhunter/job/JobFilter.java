@@ -1,8 +1,9 @@
 package com.jobhunter.job;
 
+import com.jobhunter.cli.Main;
+
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.FilterResult;
-import com.jobhunter.cli.Console;
 import com.jobhunter.exception.AiServiceException;
 import com.jobhunter.profile.Profile;
 import com.jobhunter.profile.ProfileBuilder;
@@ -33,9 +34,9 @@ public class JobFilter {
           future.get();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          Console.error("Filter interrupted", e);
+          Main.console.error("Filter interrupted", e);
         } catch (ExecutionException e) {
-          Console.error("Filter failed", e.getCause());
+          Main.console.error("Filter failed", e.getCause());
         }
       }
     }
@@ -49,7 +50,7 @@ public class JobFilter {
       job.setShouldApply(result.shouldApply());
       job.setMatchScore(result.matchScore());
     } catch (AiServiceException e) {
-      Console.warn("Could not filter job '" + job.getTitle() + "': " + e.getMessage());
+      Main.console.warn("Could not filter job '" + job.getTitle() + "': " + e.getMessage());
       job.setShouldApply(false);
     }
   }

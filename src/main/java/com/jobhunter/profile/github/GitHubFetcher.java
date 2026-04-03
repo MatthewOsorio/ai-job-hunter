@@ -14,7 +14,6 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 import com.jobhunter.ai.ClaudeService;
-import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 
 public class GitHubFetcher {
@@ -32,7 +31,7 @@ public class GitHubFetcher {
       GitHub github = GitHub.connectAnonymously();
       user = github.getUser(username);
     } catch (IOException e) {
-      Console.warn("Failed to connect to GitHub for user: " + username
+      Main.console.warn("Failed to connect to GitHub for user: " + username
           + " — profile will be built without GitHub data");
       return new GitHubProfile(username, new ArrayList<>());
     }
@@ -66,9 +65,9 @@ public class GitHubFetcher {
           repos.add(future.get());
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          Console.error("GitHub fetch interrupted", e);
+          Main.console.error("GitHub fetch interrupted", e);
         } catch (ExecutionException e) {
-          Console.error("Failed to process GitHub repo", e.getCause());
+          Main.console.error("Failed to process GitHub repo", e.getCause());
         }
       }
 

@@ -1,79 +1,120 @@
 package com.jobhunter.cli;
 
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.List;
+
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
+import org.jline.reader.LineReader;
+import org.jline.terminal.Attributes;
+import org.jline.terminal.Terminal;
+import org.jline.utils.InfoCmp;
+import org.jline.utils.NonBlockingReader;
+
+import com.jobhunter.cli.options.MenuItem;
+
 public final class Console {
-  private static final String INDENT = "  ";
-  private static int lastHeaderWidth = 0;
-  private static boolean verbose = false;
+  private Terminal terminal;
+  private Attributes originalTerminalAttributes;
+  private PrintWriter out;
+  private LineReader reader;
+  private NonBlockingReader nonBlockingReader;
+  private Thread spinnerThread;
+  private volatile String spinnerMessage = "";
+  private static final String[] SPINNER_FRAMES = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
+  private final String YELLOW = "\033[93m";
+  private final String RED = "\033[91m";
+  private final String GRAY = "\033[90m";
+  private final String RESET = "\033[0m";
+  private final String GREEN = "\033[92m";
 
-  // ── Tactical Hunter theme ─────────────────────────────────────────
-  private static final String CYAN = "\033[96m";
-  private static final String GREEN = "\033[92m";
-  private static final String YELLOW = "\033[93m";
-  private static final String RED = "\033[91m";
-  private static final String BLUE = "\033[94m";
-  private static final String GRAY = "\033[90m";
-  private static final String BOLD = "\033[1m";
-  private static final String RESET = "\033[0m";
-  // ─────────────────────────────────────────────────────────────────
-
-  private Console() {}
-
-  private static void clearLine() {
-    System.out.print("\r\033[2K");
-    System.out.flush();
+  public void setReaders(LineReader reader, NonBlockingReader nonBlockingReader) {
+    this.reader = reader;
+    this.nonBlockingReader = nonBlockingReader;
   }
 
-  public static void setVerbose(boolean v) {
-    verbose = v;
+  public void setTerminal(Terminal terminal) {
+    this.terminal = terminal;
+    this.out = terminal.writer();
   }
 
-  public static boolean isVerbose() {
-    return verbose;
+  public int menu(List<MenuItem> items) {
+    List<MenuItem> menuOptions = items;
+    int menuLineCount = menuOptions.size() + 1;
+    boolean firstRender = true;
+
+    KeyMap<String> keyMap = new KeyMap<>();
+    keyMap.bind("up", KeyMap.key(terminal, InfoCmp.Capability.key_up));
+    keyMap.bind("down", KeyMap.key(terminal, InfoCmp.Capability.key_down));
+    keyMap.bind("enter", "\r", "\n");
+    BindingReader bindingReader = new BindingReader(terminal.reader());
+
+    try {
+      enableTerminalRawMode();
+      out.print("\033[?25l");
+      out.flush();
+      int selectedIndex = 0;
+
+      while (true) {
+        if (firstRender) {
+          out.print("\033[H\033[2J");
+          printStartMessage();
+          firstRender = false;
+        } else {
+          out.print("\033[" + menuLineCount + "A");
+        }
+
+        out.println();
+
+        for (int i = 0; i < menuOptions.size(); i++) {
+          MenuItem item = menuOptions.get(i);
+          if (i == selectedIndex) {
+            out.print("\r" + GREEN + "> " + item.label() + "   " + item.description() + RESET);
+          } else {
+            out.print("\r" + "  " + item.label() + "   " + item.description());
+          }
+          out.println();
+        }
+
+        out.flush();
+
+        String binding = bindingReader.readBinding(keyMap);
+        if (binding == null) {
+          continue;
+        } else if ("enter".equals(binding)) {
+          disableTerminalRawMode();
+          return selectedIndex;
+        } else if ("up".equals(binding)) {
+          selectedIndex = (selectedIndex - 1 + menuOptions.size()) % menuOptions.size();
+        } else if ("down".equals(binding)) {
+          selectedIndex = (selectedIndex + 1) % menuOptions.size();
+        }
+      }
+    } finally {
+      out.print("\033[?25h");
+      out.flush();
+      disableTerminalRawMode();
+    }
   }
 
-  public static void header(String title) {
-    clearLine();
-    int bar = title.length() + 4;
-    lastHeaderWidth = bar;
-    String rule = "═".repeat(bar);
-    System.out.println();
-    System.out.println(INDENT + CYAN + BOLD + "╔" + rule + "╗" + RESET);
-    System.out.println(INDENT + CYAN + BOLD + "║" + RESET + "  " + BOLD + title + RESET + "  "
-        + CYAN + BOLD + "║" + RESET);
-    System.out.println(INDENT + CYAN + BOLD + "╠" + rule + "╣" + RESET);
+  public void status(String message) {
+    out.println(GRAY + message + RESET);
   }
 
-  public static void footer() {
-    clearLine();
-    System.out.println(INDENT + CYAN + BOLD + "╚" + "═".repeat(lastHeaderWidth) + "╝" + RESET);
+  public void warn(String message) {}
+
+  public void progress(String tag, String detail) {}
+
+  public void error(String message) {
+    out.println(madCat(message));
   }
 
-  public static void status(String message) {
-    clearLine();
-    System.out.println(INDENT + CYAN + "▸" + RESET + " " + message);
-  }
-
-  public static void warn(String message) {
-    clearLine();
-    System.err.println(INDENT + YELLOW + "⚠ " + RESET + " " + message);
-  }
-
-  public static void progress(String tag, String detail) {
-    clearLine();
-    System.out.println(INDENT + BLUE + "[" + tag + "]" + RESET + " " + detail);
-  }
-
-  public static void error(String message) {
-    clearLine();
-    System.err.println(INDENT + RED + "✖ " + RESET + " " + message);
-  }
-
-  public static void error(String message, Throwable cause) {
+  public void error(String message, Throwable cause) {
     if (cause == null) {
       error(message);
       return;
     }
-    clearLine();
     String causeMessage = cause.getMessage();
     String causeDescription;
     if (causeMessage == null || causeMessage.isBlank()) {
@@ -81,33 +122,130 @@ public final class Console {
     } else {
       causeDescription = cause.getClass().getName() + ": " + causeMessage;
     }
-    System.err.println(INDENT + RED + "✖ " + RESET + " " + message + ": " + causeDescription);
-    if (verbose) {
-      cause.printStackTrace(System.err);
-    }
   }
 
-  public static void debug(String message) {
-    if (verbose) {
-      clearLine();
-      System.out.println(INDENT + GRAY + "[debug]" + RESET + " " + message);
-    }
-  }
+  public void debug(String message) {}
 
-  public static void item(String text) {
-    clearLine();
-    System.out.println(INDENT + CYAN + "◆ " + RESET + " " + text);
-  }
+  public void item(String text) {}
 
-  public static void blank() {
-    clearLine();
+  public void blank() {
     System.out.println();
   }
 
-  public static void println(String text) {
-    clearLine();
+  public void println(String text) {
     for (String line : text.split("\n", -1)) {
-      System.out.println(INDENT + line);
     }
+  }
+
+  public void spinnerStart(String message) {
+    if (spinnerThread != null) {
+      spinnerStop();
+    }
+
+    spinnerMessage = message;
+
+    spinnerThread = new Thread(() -> {
+      int i = 0;
+      while (!Thread.currentThread().isInterrupted()) {
+        out.print("\r" + spinnerMessage + SPINNER_FRAMES[i++ % SPINNER_FRAMES.length]);
+        out.flush();
+        try {
+          Thread.sleep(80);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      }
+    });
+    spinnerThread.setDaemon(true);
+    spinnerThread.start();
+  }
+
+  public void spinnerUpdateMessage(String message) {
+    spinnerMessage = message;
+  }
+
+  public void spinnerStop() {
+    if (spinnerThread != null) {
+      spinnerThread.interrupt();
+      try {
+        spinnerThread.join(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      spinnerThread = null;
+    }
+    out.print("\r" + " ".repeat(60) + "\r");
+    out.flush();
+  }
+
+  public void spinnerSuccess(String message) {
+    if (spinnerThread != null) {
+      spinnerThread.interrupt();
+      try {
+        spinnerThread.join(200);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      spinnerThread = null;
+    }
+    out.println("\r\033[92m✓\033[0m " + message + " ".repeat(10));
+    out.flush();
+  }
+
+  public void printStartMessage() {
+    String message =
+        "Hi I'm Hank, your AI-powered assistant for job hunting. Let's find your next opportunity!\n"
+            + "Remember to always check results, AI isn't perfect (yet)!";
+
+    out.println(coolCat(message));
+  }
+
+  private String coolCat(String text) {
+    return createBubble(text) + """
+
+                 /
+                /
+         /\\_/\\
+        ( ⌐■_■ )
+         /     \\
+        (       )
+        """;
+  }
+
+  private String madCat(String text) {
+    return createBubble(text) + """
+
+                 /
+                /
+         /\\_/\\
+        ( >_< )
+         /     \\
+        (       )
+        """;
+  }
+
+  private String createBubble(String text) {
+    String[] lines = text.split("\n");
+    int maxLen = Arrays.stream(lines).mapToInt(String::length).max().orElse(0);
+
+    String border = "_".repeat(maxLen + 2);
+    StringBuilder bubble = new StringBuilder();
+    bubble.append(" ").append(border).append("\n");
+    bubble.append("| ").append(" ".repeat(maxLen)).append(" |\n");
+
+    for (String line : lines) {
+      bubble.append("| ").append(String.format("%-" + maxLen + "s", line)).append(" |\n");
+    }
+    bubble.append("|").append(border).append("|");
+
+    return bubble.toString();
+  }
+
+  private void enableTerminalRawMode() {
+    originalTerminalAttributes = terminal.enterRawMode();
+  }
+
+  private void disableTerminalRawMode() {
+    terminal.setAttributes(originalTerminalAttributes);
   }
 }

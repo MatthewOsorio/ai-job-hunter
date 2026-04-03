@@ -2,7 +2,6 @@ package com.jobhunter.profile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jobhunter.ai.ClaudeService;
-import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.exception.ProfileBuildException;
 import com.jobhunter.profile.github.GitHubFetcher;
@@ -58,7 +57,7 @@ public class ProfileBuilder {
       Profile cached = objectMapper.readValue(cachePath.toFile(), Profile.class);
       return Optional.of(cached);
     } catch (IOException e) {
-      Console.warn("Profile cache unreadable, rebuilding: " + e.getMessage());
+      Main.console.warn("Profile cache unreadable, rebuilding: " + e.getMessage());
       return Optional.empty();
     }
   }
@@ -68,7 +67,7 @@ public class ProfileBuilder {
     try {
       objectMapper.writerWithDefaultPrettyPrinter().writeValue(cachePath.toFile(), built);
     } catch (IOException e) {
-      Console.error("Failed to write profile cache", e);
+      Main.console.error("Failed to write profile cache", e);
     }
     return built;
   }
@@ -77,7 +76,7 @@ public class ProfileBuilder {
     try {
       Files.deleteIfExists(cachePath);
     } catch (IOException e) {
-      Console.error("Failed to delete profile cache", e);
+      Main.console.error("Failed to delete profile cache", e);
     }
   }
 
@@ -113,7 +112,7 @@ public class ProfileBuilder {
     boolean hasUsername = Main.config.hasPath("jobhunter.github.username");
     boolean hasRepos = Main.config.hasPath("jobhunter.github.repos");
     if (Main.config.hasPath("jobhunter.github") && !(hasUsername && hasRepos)) {
-      Console.warn(
+      Main.console.warn(
           "GitHub config is incomplete (missing username or repos) - skipping GitHub profile");
       return false;
     }

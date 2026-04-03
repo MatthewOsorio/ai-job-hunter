@@ -4,20 +4,21 @@
 AI-powered Java 21 CLI that scrapes job listings (GitHub-hosted boards via Playwright/jsoup),
 filters them against a user profile (GitHub repos + parsed resume), tailors LaTeX/docx resumes
 using Claude, and emails match reports. Built with Maven, picocli, Anthropic Java SDK, SQLite,
-Quartz, and JLine.
+and JLine.
 
 ## Architecture
 
 ```
 src/main/java/com/jobhunter/
-├── cli/              — Main entrypoint, InteractiveMenu, Console, Spinner
+├── cli/              — Main entrypoint, InteractiveMenu, Console (terminal I/O + spinner)
 │   └── options/      — MenuItem (abstract base), MenuItemFactory, HuntCommand,
 │                       HuntOneCommand, ViewProfileCommand
 ├── job/              — HuntPipeline (orchestrator), JobScraper, JobFilter, JobTailor,
 │                       JobRunner, Job, JobScraperResult
 │   └── source/       — JobSource interface, JobSourceFactory, SimplifyJobSource
 ├── ai/               — ClaudeService, ExtractionResult, FilterResult, JobMetaResult
-├── profile/          — Profile, ProfileBuilder, ResumeParser
+├── profile/          — Profile, ProfileBuilder
+│   ├── resume/       — ResumeParser
 │   └── github/       — GitHubFetcher, GitHubProfile, GitHubRepo
 ├── scraper/          — BrowserPool, PageFetcher, FetchResult, FetchStatus
 ├── db/               — JobRepository (SQLite dedup)
@@ -35,6 +36,7 @@ Config lives in two places:
 ```bash
 mvn clean package          # build fat JAR → target/ai-job-hunter-1.0-SNAPSHOT.jar
 mvn test                   # run JUnit Jupiter tests
+mvn test jacoco:report     # run tests with coverage report
 mvn formatter:validate     # check Google Java Style formatting
 mvn formatter:format       # auto-format all sources
 mvn spotbugs:check         # static analysis (threshold: High)
@@ -52,12 +54,14 @@ java -jar target/ai-job-hunter-1.0-SNAPSHOT.jar --help
 - Typed subclasses: `AiServiceException`, `ConfigurationException`, `ProfileBuildException`,
   `ResumeNotFoundException`, `ScrapingException` — add new exception types here, never throw
   raw `RuntimeException` or `Exception`
-- Use `Console.error(msg, e)` for user-facing errors; stack traces only print in verbose mode
+- Use `Main.console.error(msg, e)` for user-facing errors; stack traces only print in verbose mode
 
 ### Output / UI
-- All terminal output goes through `Console` (static methods: `status`, `error`, `header`,
-  `footer`, `blank`, `println`) — never use `System.out.println` directly
-- Use `Spinner` for any blocking operation with a progress indicator
+- All terminal output goes through `Console` — access via `Main.console` (static singleton instance)
+- `Console` methods: `status`, `error`, `warn`, `debug`, `item`, `blank`, `println`
+- For blocking operations, use the built-in spinner: `Main.console.spinnerStart(msg)`,
+  `spinnerUpdateMessage(msg)`, `spinnerStop()`, `spinnerSuccess(msg)`
+- Never use `System.out.println` directly
 
 ### AI prompts
 - All Claude prompts live in `application.conf` under `jobhunter.prompts` — do not hardcode
@@ -83,3 +87,5 @@ java -jar target/ai-job-hunter-1.0-SNAPSHOT.jar --help
 - Resume supports both `.tex` (LaTeX) and `.docx` formats; `ResumeParser` handles both
 - `HuntPipeline` runs the full automated flow; `HuntOneCommand` handles single-URL ad-hoc hunts
 - `Main.validate()` runs at startup and fails fast if `.env` is misconfigured
+  (requires: `ANTHROPIC_API_KEY`, `RESUME_PATH`, `TARGET_DIR`)
+- Quartz scheduler is configured in `application.conf` but not yet wired up

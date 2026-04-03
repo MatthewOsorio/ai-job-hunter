@@ -1,19 +1,19 @@
 package com.jobhunter.cli.options;
 
+import com.jobhunter.cli.Main;
+
 import org.jline.reader.LineReader;
 
 import com.jobhunter.ai.ClaudeService;
-import com.jobhunter.cli.Console;
-import com.jobhunter.cli.Spinner;
 import com.jobhunter.exception.JobHunterException;
 import com.jobhunter.job.HuntPipeline;
 
 public class HuntCommand extends MenuItem {
   private final HuntPipeline huntPipeline;
 
-  public HuntCommand(String label, String description, Spinner spinner, ClaudeService claude) {
-    super(label, description, spinner, claude);
-    this.huntPipeline = new HuntPipeline(claude, spinner);
+  public HuntCommand(String label, String description, ClaudeService claude) {
+    super(label, description, claude);
+    this.huntPipeline = new HuntPipeline(claude, Main.console);
   }
 
   @Override
@@ -21,7 +21,7 @@ public class HuntCommand extends MenuItem {
     try {
       huntPipeline.runAll();
     } catch (JobHunterException e) {
-      Console.error(e.getMessage(), e);
+      Main.console.error(e.getMessage(), e);
     }
   }
 }

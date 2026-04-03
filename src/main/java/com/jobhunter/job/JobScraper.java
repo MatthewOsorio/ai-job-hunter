@@ -3,11 +3,11 @@ package com.jobhunter.job;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.ExtractionResult;
 import com.jobhunter.ai.JobMetaResult;
-import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
 import com.jobhunter.exception.ScrapingException;
 import com.jobhunter.job.source.JobSource;
 import com.jobhunter.job.source.JobSourceFactory;
+import com.jobhunter.scraper.BrowserPool;
 import com.jobhunter.scraper.FetchResult;
 import com.jobhunter.scraper.FetchStatus;
 import com.jobhunter.scraper.PageFetcher;
@@ -23,11 +23,16 @@ import java.util.concurrent.Future;
 
 public class JobScraper {
   private final Config config = Main.config;
-  private final PageFetcher pageFetcher = new PageFetcher();
+  private final PageFetcher pageFetcher;
   private final ClaudeService claudeService;
 
   public JobScraper(ClaudeService claudeService) {
+    this(claudeService, BrowserPool.DEFAULT_POOL_SIZE);
+  }
+
+  public JobScraper(ClaudeService claudeService, int browserPoolSize) {
     this.claudeService = claudeService;
+    this.pageFetcher = new PageFetcher(browserPoolSize);
   }
 
   public JobScraperResult scrape() throws ScrapingException {
@@ -57,9 +62,9 @@ public class JobScraper {
           future.get();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          Console.error("Scrape interrupted", e);
+          Main.console.error("Scrape interrupted", e);
         } catch (ExecutionException e) {
-          Console.error("Scrape thread failed", e.getCause());
+          Main.console.error("Scrape thread failed", e.getCause());
         }
       }
     }
@@ -82,7 +87,7 @@ public class JobScraper {
     FetchResult fetchResult = pageFetcher.fetch(job.getUrl());
 
     if (fetchResult.getStatus() != FetchStatus.SUCCESS) {
-      Console.warn("Fetch failed for " + job.getUrl() + ": " + fetchResult.getReason());
+      Main.console.warn("Fetch failed for " + job.getUrl() + ": " + fetchResult.getReason());
       result.addFailedJob(job);
       return;
     }

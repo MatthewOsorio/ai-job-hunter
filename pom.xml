@@ -46,7 +46,7 @@
         <dependency>
             <groupId>com.anthropic</groupId>
             <artifactId>anthropic-java</artifactId>
-            <version>2.18.0</version>
+            <version>2.19.0</version>
         </dependency>
 
         <!-- JSON parsing -->
@@ -110,21 +110,21 @@
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline</artifactId>
-            <version>4.0.9</version>
+            <version>4.0.10</version>
         </dependency>
 
         <!-- .docx parsing -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
-            <version>5.3.0</version>
+            <version>5.5.1</version>
         </dependency>
 
         <!-- Rate limiting -->
         <dependency>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
-          <version>33.4.0-jre</version>
+          <version>33.5.0-jre</version>
         </dependency>
     </dependencies>
 

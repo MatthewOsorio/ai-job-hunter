@@ -2,6 +2,7 @@ package com.jobhunter.cli.options;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.ConfigurationException;
 
 public class MenuItemFactory {
   private final ClaudeService claude;
@@ -18,10 +19,10 @@ public class MenuItemFactory {
           claude);
       case "hunt-one" -> new HuntOneCommand("Hunt One Job",
           "Scrape a single job from sources, filter it, and tailor resume", claude);
-
-      case "view-profile" -> new ViewProfileCommand("View Profile",
-          "View your profile and optionally rebuild it", claude);
-      default -> throw new IllegalArgumentException("Unknown menu item: " + itemName);
+      case "manage-profile" ->
+        new ViewProfileCommand("Manage Profile", "Manage your profile here", claude);
+      case "exit" -> new ExitCommand();
+      default -> throw new ConfigurationException("Unknown menu item: " + itemName);
     };
   }
 }

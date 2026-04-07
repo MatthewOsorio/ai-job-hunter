@@ -5,7 +5,8 @@ import com.jobhunter.cli.Main;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.FilterResult;
 import com.jobhunter.exception.AiServiceException;
-import com.jobhunter.profile.Profile;
+import com.jobhunter.exception.FilteringException;
+import com.jobhunter.exception.SpecialInterruption;
 import com.jobhunter.profile.ProfileBuilder;
 
 import java.util.List;
@@ -17,11 +18,11 @@ import java.util.stream.Collectors;
 
 public class JobFilter {
   private final ClaudeService claudeService;
-  private final Profile profile;
+  private final ProfileBuilder profileBuilder;
 
   public JobFilter(ClaudeService claudeService) {
     this.claudeService = claudeService;
-    this.profile = new ProfileBuilder(claudeService).getProfile();
+    this.profileBuilder = new ProfileBuilder(claudeService);
   }
 
   public List<Job> filter(List<Job> jobs) {
@@ -33,10 +34,9 @@ public class JobFilter {
         try {
           future.get();
         } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          Main.console.error("Filter interrupted", e);
+          throw new SpecialInterruption(e.getMessage());
         } catch (ExecutionException e) {
-          Main.console.error("Filter failed", e.getCause());
+          throw new FilteringException(e.getMessage(), e.getCause());
         }
       }
     }
@@ -45,13 +45,9 @@ public class JobFilter {
   }
 
   public void filterOne(Job job) {
-    try {
-      FilterResult result = claudeService.filterJob(profile.toString(), job.getDescription());
-      job.setShouldApply(result.shouldApply());
-      job.setMatchScore(result.matchScore());
-    } catch (AiServiceException e) {
-      Main.console.warn("Could not filter job '" + job.getTitle() + "': " + e.getMessage());
-      job.setShouldApply(false);
-    }
+    FilterResult result =
+        claudeService.filterJob(profileBuilder.getProfile().toString(), job.getDescription());
+    job.setShouldApply(result.shouldApply());
+    job.setMatchScore(result.matchScore());
   }
 }

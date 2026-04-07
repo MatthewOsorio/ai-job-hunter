@@ -2,7 +2,7 @@ package com.jobhunter.cli.options;
 
 import com.jobhunter.cli.Main;
 
-import org.jline.reader.LineReader;
+import java.util.List;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.exception.JobHunterException;
@@ -18,50 +18,31 @@ public class ViewProfileCommand extends MenuItem {
   }
 
   @Override
-  public void run(LineReader reader) {
-    if (!profileBuilder.isCached()) {
-      // spinner.start("No profile found. Building one now ");
-    } else {
-      // spinner.start("Loading profile from cache ");
-    }
-
-    Profile profile;
-    try {
-      profile = profileBuilder.getProfile();
-    } catch (JobHunterException e) {
-      Main.console.error("Failed to load profile: " + e.getMessage(), e);
-      return;
-    } finally {
-      // spinner.stop();
-    }
-
-    // Main.console.header("Your Profile");
-    Main.console.println(profile.toString());
-    // Main.console.footer();
-
+  public void run() {
+    String header = "Please view your profile here: " + profileBuilder.getCachePath().toString();
     while (true) {
-      String answer =
-          reader.readLine("  Would you like to rebuild your profile? (y/n): ").trim().toLowerCase();
-      if (answer.equals("y")) {
-        // spinner.start("Rebuilding profile ");
+      List<MenuItem> options = List.of(new EmptyCommand("Yes, rebuild my profile!"),
+          new EmptyCommand("No, my profile is good"));
+
+      int choice = Main.console.menu(options, header);
+      if (choice == 0) {
+        Main.console.spinnerStart("Rebuilding profile ");
         Profile rebuilt;
         try {
           rebuilt = profileBuilder.rebuildProfile();
         } catch (JobHunterException e) {
-          Main.console.error("Failed to rebuild profile: " + e.getMessage(), e);
+          Main.console.error(e.getMessage());
           return;
         } finally {
-          // spinner.stop();
+          Main.console.spinnerStop();
         }
 
-        // Main.console.header("New Profile");
+        Main.console.generalCat("Here's your rebuilt profile!");
         Main.console.println(rebuilt.toString());
-        // Main.console.footer();
         break;
-      } else if (answer.equals("n")) {
+      } else if (choice == 1) {
         break;
       }
-      Main.console.println("Invalid input. Please enter y or n");
     }
   }
 }

@@ -3,6 +3,10 @@ package com.jobhunter.job;
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.ScrapingException;
+import com.jobhunter.exception.TailoringException;
+import com.jobhunter.utils.LatexPair;
+import com.jobhunter.utils.Utils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,18 +41,12 @@ public class JobTailor {
     try {
       resumeContent = Files.readString(Paths.get(resumePath));
     } catch (IOException e) {
-      Main.console.error("Failed to read resume from " + resumePath, e);
-      return List.of();
+      throw new TailoringException("Failed to read resume from " + resumePath, e);
     }
 
-    int splitIdx = resumeContent.indexOf("\\begin{document}");
-    if (splitIdx == -1) {
-      Main.console
-          .error("Could not find \\begin{document} in resume — is RESUME_PATH a .tex file?");
-      return List.of();
-    }
-    String preamble = resumeContent.substring(0, splitIdx + "\\begin{document}".length());
-    String body = resumeContent.substring(splitIdx + "\\begin{document}".length());
+    LatexPair latexPair = Utils.extractLatexPair(resumeContent);
+    String preamble = latexPair.getPreamble();
+    String body = latexPair.getBody();
 
     int total = jobs.size();
     AtomicInteger completed = new AtomicInteger(0);
@@ -71,7 +69,6 @@ public class JobTailor {
     return outputs;
   }
 
-  /** Runs one parallel pass over {@code jobs}. Returns any jobs that failed or timed out. */
   private List<Job> runPass(List<Job> jobs, String preamble, String body, int total,
       AtomicInteger completed, List<Path> outputs) {
     ConcurrentLinkedQueue<Job> failed = new ConcurrentLinkedQueue<>();
@@ -84,11 +81,10 @@ public class JobTailor {
                   Throwable cause = ex instanceof CompletionException ? ex.getCause() : ex;
                   if (cause instanceof TimeoutException) {
                     Main.console.error("Tailor timed out for '" + job.getTitle() + "' at '"
-                        + job.getCompany() + "' — will retry");
+                        + job.getCompany() + "' - will retry");
                   } else if (!(cause instanceof InterruptedException)) {
-                    Main.console.error(
-                        "Tailor failed for '" + job.getTitle() + "' at '" + job.getCompany() + "'",
-                        cause);
+                    Main.console.error("Tailor failed for '" + job.getTitle() + "' at '"
+                        + job.getCompany() + "': " + cause.getMessage());
                   }
                   failed.add(job);
                 } else {
@@ -99,15 +95,17 @@ public class JobTailor {
                   });
                 }
                 int done = completed.incrementAndGet();
-                // if (console != null) {
-                // console.spinnerUpdateMessage("Tailoring resumes [" + done + "/" + total + "] ");
-                // }
+                if (Main.console != null) {
+                  Main.console
+                      .spinnerUpdateMessage("Tailoring resumes [" + done + "/" + total + "] ");
+                }
                 return (Void) null;
               }))
           .collect(Collectors.toList());
       try {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-      } catch (CompletionException ignored) {
+      } catch (CompletionException e) {
+        Main.console.warn("Unexpected completion error during tailor pass: " + e.getMessage());
       }
     } finally {
       executor.shutdownNow();
@@ -116,24 +114,23 @@ public class JobTailor {
   }
 
   private Optional<Path> tailorOne(Job job, String preamble, String body) {
-    try {
-      String tailoredBody = claudeService.tailorResumeTex(body, job.getDescription());
-      String fullTex = preamble + "\n" + tailoredBody;
-      return Optional.of(writeOutput(job, fullTex));
-    } catch (IOException e) {
-      Main.console
-          .error("Error writing tailored resume for " + job.getTitle() + ": " + e.getMessage(), e);
-      return Optional.empty();
-    }
+    String tailoredBody = claudeService.tailorResumeTex(body, job.getDescription());
+    String fullTex = preamble + "\\begin{document}\n" + tailoredBody;
+    return Optional.of(writeOutput(job, fullTex));
   }
 
-  private Path writeOutput(Job job, String content) throws IOException {
-    Files.createDirectories(Paths.get(outputDir));
-    String safeCompany = job.getCompany().replaceAll("[^a-zA-Z0-9_-]", "_");
-    String safeTitle = job.getTitle().replaceAll("[^a-zA-Z0-9_-]", "_");
-    String filename = safeCompany + "_" + safeTitle + ".tex";
-    Path output = Paths.get(outputDir, filename);
-    Files.writeString(output, content);
-    return output;
+  private Path writeOutput(Job job, String content) {
+    try {
+      Files.createDirectories(Paths.get(outputDir));
+      String safeCompany = job.getCompany().replaceAll("[^a-zA-Z0-9_-]", "_");
+      String safeTitle = job.getTitle().replaceAll("[^a-zA-Z0-9_-]", "_");
+      String filename = safeCompany + "_" + safeTitle + ".tex";
+      Path output = Paths.get(outputDir, filename);
+      Files.writeString(output, content);
+      return output;
+    } catch (IOException e) {
+      throw new TailoringException("Failed to write tailored resume for '" + job.getTitle()
+          + "' at '" + job.getCompany() + "'", e);
+    }
   }
 }

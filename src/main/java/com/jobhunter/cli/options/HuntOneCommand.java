@@ -8,11 +8,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-import org.jline.reader.LineReader;
-
 import com.jobhunter.ai.ClaudeService;
-import com.jobhunter.cli.Console;
 import com.jobhunter.exception.JobHunterException;
+import com.jobhunter.exception.TailoringException;
 import com.jobhunter.job.Job;
 import com.jobhunter.job.JobFilter;
 import com.jobhunter.job.JobScraper;
@@ -31,11 +29,22 @@ public class HuntOneCommand extends MenuItem {
     this.jobTailor = new JobTailor(claude);
   }
 
+  private String scoreLabel(int score) {
+    if (score >= 80)
+      return "strong match";
+    if (score >= 60)
+      return "moderate match";
+    if (score >= 40)
+      return "weak match";
+    return "poor match";
+  }
+
   @Override
-  public void run(LineReader reader) {
+  public void run() {
+    Main.console.info("Paste a full job URL (e.g., https://example.com/job/123)");
     String jobUrl;
     while (true) {
-      jobUrl = reader.readLine("  Enter the job URL to hunt: ").trim();
+      jobUrl = Main.console.readLine("  Enter the job URL to hunt: ").trim();
       if (jobUrl.isEmpty()) {
         Main.console.warn("Invalid input. Please enter a job URL.");
         continue;
@@ -55,65 +64,78 @@ public class HuntOneCommand extends MenuItem {
       break;
     }
 
-    // console.spinnerStart("Fetching job posting ");
+    Main.console.spinnerStart("Fetching job posting ");
     Optional<Job> maybeJob;
     try {
       maybeJob = jobScraper.scrapeOne(jobUrl);
     } catch (JobHunterException e) {
-      Main.console.error(e.getMessage(), e);
+      Main.console.error(e.getMessage());
       return;
     } finally {
-      // console.spinnerStop();
+      Main.console.spinnerStop();
     }
 
     if (maybeJob.isEmpty()) {
-      Main.console.status("Could not fetch or extract job description.");
+      Main.console.error("Could not fetch or extract job description");
       return;
     }
 
     Job job = maybeJob.get();
-    // console.spinnerStart("Filtering job ");
+    Main.console.spinnerStart("Filtering job ");
     try {
       jobFilter.filterOne(job);
+    } catch (JobHunterException e) {
+      Main.console.error(e.getMessage());
+      return;
     } finally {
-      // console.spinnerStop();
+      Main.console.spinnerStop();
     }
 
     Main.console.blank();
-    // Main.console.header("Result");
-    // Main.console.status("Match score: " + job.getMatchScore() + "/100");
+
+    int score = job.getMatchScore();
+    String scoreStr = "Match score: " + score + "/100 (" + scoreLabel(score) + ")";
     if (job.isShouldApply()) {
-      Main.console.status("Recommendation: Apply");
+      Main.console.generalCat("You should apply!\n" + scoreStr);
     } else {
-      Main.console.status("Recommendation: Skip");
-      // Main.console.footer();
+      Main.console.generalCat("I wouldn't recommend applying.\n" + scoreStr);
       return;
     }
-    // Main.console.footer();
     Main.console.blank();
 
     while (true) {
-      String answer = reader.readLine("  Tailor your resume for this job? (y/n): ").trim();
-      if (answer.equalsIgnoreCase("y")) {
-        // console.spinnerStart("Tailoring resume ");
+      List<MenuItem> options = List.of(new MenuItem("Yes, tailor my resume for this job") {
+        @Override
+        public void run() {}
+      }, new MenuItem("No, don't tailor my resume for this job") {
+        @Override
+        public void run() {}
+      });
+
+      int choice = Main.console.menu(options);
+      if (choice == 0) {
+        Main.console.spinnerStart("Tailoring resume ");
         List<Path> outputs;
         try {
           outputs = jobTailor.tailor(List.of(job));
+        } catch (JobHunterException e) {
+          Main.console.error(e.getMessage());
+          return;
         } finally {
-          // console.spinnerStop();
+          Main.console.spinnerStop();
         }
 
         if (outputs.isEmpty()) {
-          Main.console.error("Resume tailoring failed — see error details above.");
+          throw new TailoringException("Resume could not be tailored.");
         } else {
-          Main.console.status("Resume saved to: " + outputs.get(0).toAbsolutePath());
+          Main.console.generalCat("Resume saved to: " + outputs.get(0).toAbsolutePath());
           break;
         }
-      } else if (answer.equalsIgnoreCase("n")) {
-        break;
       } else {
-        Main.console.warn("Invalid input. Please enter y or n.");
+        Main.console.info("Job URL: " + job.getUrl());
+        break;
       }
     }
   }
+
 }

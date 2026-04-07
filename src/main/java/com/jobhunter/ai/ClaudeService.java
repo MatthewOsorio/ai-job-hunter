@@ -58,8 +58,7 @@ public class ClaudeService {
       ExtractionResult result = objectMapper.readValue(raw, ExtractionResult.class);
       return result.found() ? Optional.of(result) : Optional.empty();
     } catch (JsonProcessingException e) {
-      Main.console.error("Failed to parse extraction response", e);
-      return Optional.empty();
+      throw new AiServiceException("Failed to parse Claude extraction response", e);
     }
   }
 
@@ -72,8 +71,7 @@ public class ClaudeService {
       JobMetaResult result = objectMapper.readValue(raw, JobMetaResult.class);
       return Optional.of(result);
     } catch (JsonProcessingException e) {
-      Main.console.error("Failed to parse job meta response", e);
-      return Optional.empty();
+      throw new AiServiceException("Failed to parse Claude job meta response", e);
     }
   }
 

@@ -58,6 +58,6 @@ public class JobRunner {
       console.spinnerStop();
     }
 
-    Main.console.status("Hunt job complete!");
+    Main.console.generalCat("Hunt job complete!");
   }
 }

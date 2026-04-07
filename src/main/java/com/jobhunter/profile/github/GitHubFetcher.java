@@ -32,7 +32,7 @@ public class GitHubFetcher {
       user = github.getUser(username);
     } catch (IOException e) {
       Main.console.warn("Failed to connect to GitHub for user: " + username
-          + " — profile will be built without GitHub data");
+          + " - profile will be built without GitHub data");
       return new GitHubProfile(username, new ArrayList<>());
     }
 
@@ -55,6 +55,8 @@ public class GitHubFetcher {
                 new String(fullReadme.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             String summary = claude.summarizeReadMe(readmeContent);
             return new GitHubRepo(name, languages, summary);
+          } catch (IOException e) {
+            return new GitHubRepo(name, languages);
           }
         }));
       }
@@ -65,9 +67,9 @@ public class GitHubFetcher {
           repos.add(future.get());
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          Main.console.error("GitHub fetch interrupted", e);
+          Main.console.warn("GitHub fetch interrupted");
         } catch (ExecutionException e) {
-          Main.console.error("Failed to process GitHub repo", e.getCause());
+          Main.console.warn("Failed to process GitHub repo: " + e.getCause().getMessage());
         }
       }
 

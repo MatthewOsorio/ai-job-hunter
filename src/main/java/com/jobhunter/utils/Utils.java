@@ -1,5 +1,7 @@
 package com.jobhunter.utils;
 
+import com.jobhunter.exception.ConfigurationException;
+
 public final class Utils {
   private Utils() {
     throw new UnsupportedOperationException("Utility class");
@@ -8,7 +10,7 @@ public final class Utils {
   public static LatexPair extractLatexPair(String latexContent) {
     int splitIdx = latexContent.indexOf("\\begin{document}");
     if (splitIdx == -1) {
-      throw new IllegalArgumentException("Could not find \\begin{document} in LaTeX content");
+      throw new ConfigurationException("Could not find \\begin{document} in LaTeX content");
     }
     String preamble = latexContent.substring(0, splitIdx);
     String body = latexContent.substring(splitIdx + "\\begin{document}".length());
@@ -20,6 +22,6 @@ public final class Utils {
       return "tex";
     if (path.toLowerCase().endsWith(".docx"))
       return "docx";
-    throw new IllegalArgumentException("Unsupported file type for resume: " + path);
+    throw new ConfigurationException("Unsupported file type for resume: " + path);
   }
 }

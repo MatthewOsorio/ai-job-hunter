@@ -4,7 +4,10 @@ import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.ai.ExtractionResult;
 import com.jobhunter.ai.JobMetaResult;
 import com.jobhunter.cli.Main;
+import com.jobhunter.exception.AiServiceException;
+import com.jobhunter.exception.JobHunterException;
 import com.jobhunter.exception.ScrapingException;
+import com.jobhunter.exception.SpecialInterruption;
 import com.jobhunter.job.source.JobSource;
 import com.jobhunter.job.source.JobSourceFactory;
 import com.jobhunter.scraper.BrowserPool;
@@ -43,9 +46,20 @@ public class JobScraper {
       throw new ScrapingException("No job sources configured under 'jobhunter.sources'");
     }
 
-    for (JobSource source : JobSourceFactory
-        .fromConfig(config.getConfigList("jobhunter.sources"))) {
+    List<JobSource> sources =
+        JobSourceFactory.fromConfig(config.getConfigList("jobhunter.sources"));
+
+    if (sources.isEmpty()) {
+      throw new ScrapingException("No valid job sources found under 'jobhunter.sources'");
+    }
+
+    for (JobSource source : sources) {
       jobs.addAll(source.scrape());
+    }
+
+    if (jobs.isEmpty()) {
+      Main.console.warn("No jobs found from any source");
+      throw new ScrapingException("No jobs found from any source");
     }
 
     JobScraperResult results = new JobScraperResult();
@@ -54,7 +68,16 @@ public class JobScraper {
       List<Future<?>> futures = new ArrayList<>();
 
       for (Job job : jobs) {
-        futures.add(executor.submit(() -> processJob(job, results)));
+        futures.add(executor.submit(() -> {
+          try {
+            processJob(job, results);
+          } catch (SpecialInterruption e) {
+            throw e;
+          } catch (JobHunterException e) {
+            Main.console.warn("Skipping job at " + job.getUrl() + ": " + e.getMessage());
+            results.addFailedJob(job);
+          }
+        }));
       }
 
       for (Future<?> future : futures) {
@@ -62,14 +85,22 @@ public class JobScraper {
           future.get();
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
-          Main.console.error("Scrape interrupted", e);
+          throw new SpecialInterruption("Job scraping interrupted!");
         } catch (ExecutionException e) {
-          Main.console.error("Scrape thread failed", e.getCause());
+          if (e.getCause() instanceof SpecialInterruption si) {
+            throw si;
+          }
+          throw new ScrapingException("Scrape task failed: " + e.getCause().getMessage(),
+              e.getCause());
         }
       }
     }
 
     pageFetcher.close();
+
+    if (results.getValidJobs().isEmpty()) {
+      throw new ScrapingException("All " + jobs.size() + " job(s) failed to fetch or extract");
+    }
 
     return results;
   }
@@ -97,13 +128,17 @@ public class JobScraper {
           claudeService.extractJobDescription(fetchResult.getContent());
       if (desc.isPresent()) {
         job.setDescription(desc.get().description());
-        Optional<JobMetaResult> meta = claudeService.extractJobMeta(fetchResult.getContent());
-        meta.ifPresent(m -> {
-          if (m.title() != null)
-            job.setTitle(m.title());
-          if (m.company() != null)
-            job.setCompany(m.company());
-        });
+        try {
+          Optional<JobMetaResult> meta = claudeService.extractJobMeta(fetchResult.getContent());
+          meta.ifPresent(m -> {
+            if (m.title() != null)
+              job.setTitle(m.title());
+            if (m.company() != null)
+              job.setCompany(m.company());
+          });
+        } catch (AiServiceException e) {
+          // meta is best-effort; title/company stay null
+        }
         result.addValidJob(job);
       } else {
         result.addFailedJob(job);

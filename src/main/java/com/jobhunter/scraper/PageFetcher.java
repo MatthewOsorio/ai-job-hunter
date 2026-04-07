@@ -39,17 +39,12 @@ public class PageFetcher {
       }
     }
 
+    BrowserPool pool = getPool();
+    BrowserPool.BrowserInstance instance = pool.borrow();
     try {
-      BrowserPool pool = getPool();
-      BrowserPool.BrowserInstance instance = pool.borrow();
-      try {
-        return fetchWithPlaywright(url, instance.browser());
-      } finally {
-        pool.returnInstance(instance);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return FetchResult.error("Interrupted waiting for browser");
+      return fetchWithPlaywright(url, instance.browser());
+    } finally {
+      pool.returnInstance(instance);
     }
   }
 

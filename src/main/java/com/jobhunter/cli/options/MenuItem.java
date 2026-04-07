@@ -1,6 +1,5 @@
 package com.jobhunter.cli.options;
 
-import org.jline.reader.LineReader;
 
 import com.jobhunter.ai.ClaudeService;
 
@@ -15,6 +14,18 @@ public abstract class MenuItem {
     this.claude = claude;
   }
 
+  public MenuItem(ClaudeService claude) {
+    this("", "", claude);
+  }
+
+  public MenuItem(String label, String description) {
+    this(label, description, null);
+  }
+
+  public MenuItem(String label) {
+    this(label, "", null);
+  }
+
   public String label() {
     return label;
   }
@@ -23,5 +34,5 @@ public abstract class MenuItem {
     return description;
   }
 
-  public abstract void run(LineReader reader);
+  public abstract void run();
 }

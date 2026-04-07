@@ -1,5 +1,6 @@
 package com.jobhunter.job.source;
 
+import com.jobhunter.exception.ConfigurationException;
 import com.typesafe.config.Config;
 
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ public class JobSourceFactory {
 
       JobSource jobSource = switch (type) {
         case "simplify" -> new SimplifyJobSource(name, url);
-        default -> throw new IllegalArgumentException("Unknown source type: " + type);
+        default -> throw new ConfigurationException("Unknown source type: " + type);
       };
       sources.add(jobSource);
     }

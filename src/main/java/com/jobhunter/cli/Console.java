@@ -24,14 +24,17 @@ public final class Console {
   private volatile String spinnerMessage = "";
   private static final String[] SPINNER_FRAMES = {"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"};
   private final String YELLOW = "\033[93m";
-  private final String RED = "\033[91m";
-  private final String GRAY = "\033[90m";
   private final String RESET = "\033[0m";
   private final String GREEN = "\033[92m";
+  private final String BLUE = "\033[94m";
 
   public void setReaders(LineReader reader, NonBlockingReader nonBlockingReader) {
     this.reader = reader;
     this.nonBlockingReader = nonBlockingReader;
+  }
+
+  public String readLine(String prompt) {
+    return reader.readLine(prompt);
   }
 
   public void setTerminal(Terminal terminal) {
@@ -40,9 +43,19 @@ public final class Console {
   }
 
   public int menu(List<MenuItem> items) {
+    return menu(items, false, null);
+  }
+
+  public int menu(List<MenuItem> items, boolean showWelcome) {
+    return menu(items, showWelcome, null);
+  }
+
+  public int menu(List<MenuItem> items, String header) {
+    return menu(items, false, header);
+  }
+
+  private int menu(List<MenuItem> items, boolean showWelcome, String header) {
     List<MenuItem> menuOptions = items;
-    int menuLineCount = menuOptions.size() + 1;
-    boolean firstRender = true;
 
     KeyMap<String> keyMap = new KeyMap<>();
     keyMap.bind("up", KeyMap.key(terminal, InfoCmp.Capability.key_up));
@@ -57,12 +70,12 @@ public final class Console {
       int selectedIndex = 0;
 
       while (true) {
-        if (firstRender) {
-          out.print("\033[H\033[2J");
+        terminal.puts(InfoCmp.Capability.clear_screen);
+        if (showWelcome) {
           printStartMessage();
-          firstRender = false;
-        } else {
-          out.print("\033[" + menuLineCount + "A");
+        }
+        if (header != null) {
+          out.println(header);
         }
 
         out.println();
@@ -84,6 +97,7 @@ public final class Console {
           continue;
         } else if ("enter".equals(binding)) {
           disableTerminalRawMode();
+          out.println();
           return selectedIndex;
         } else if ("up".equals(binding)) {
           selectedIndex = (selectedIndex - 1 + menuOptions.size()) % menuOptions.size();
@@ -98,43 +112,29 @@ public final class Console {
     }
   }
 
-  public void status(String message) {
-    out.println(GRAY + message + RESET);
+  public void generalCat(String message) {
+    out.println(coolCat(message));
   }
 
-  public void warn(String message) {}
+  public void println(String message) {
+    out.println(message + "\n");
+  }
 
-  public void progress(String tag, String detail) {}
+  public void warn(String message) {
+    out.println(YELLOW + "[WARNING] " + RESET + message);
+  }
+
+  public void info(String message) {
+    out.println(BLUE + "[INFO] " + RESET + message);
+  }
 
   public void error(String message) {
     out.println(madCat(message));
   }
 
-  public void error(String message, Throwable cause) {
-    if (cause == null) {
-      error(message);
-      return;
-    }
-    String causeMessage = cause.getMessage();
-    String causeDescription;
-    if (causeMessage == null || causeMessage.isBlank()) {
-      causeDescription = cause.toString();
-    } else {
-      causeDescription = cause.getClass().getName() + ": " + causeMessage;
-    }
-  }
-
-  public void debug(String message) {}
-
-  public void item(String text) {}
 
   public void blank() {
-    System.out.println();
-  }
-
-  public void println(String text) {
-    for (String line : text.split("\n", -1)) {
-    }
+    out.println();
   }
 
   public void spinnerStart(String message) {
@@ -223,6 +223,7 @@ public final class Console {
         (       )
         """;
   }
+
 
   private String createBubble(String text) {
     String[] lines = text.split("\n");

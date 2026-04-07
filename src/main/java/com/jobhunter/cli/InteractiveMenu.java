@@ -11,6 +11,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.NonBlockingReader;
 
 import com.jobhunter.cli.options.MenuItem;
+import com.jobhunter.exception.JobHunterException;
 
 public class InteractiveMenu {
   private final List<MenuItem> items;
@@ -25,21 +26,20 @@ public class InteractiveMenu {
       NonBlockingReader nonBlockingReader = terminal.reader();
       Main.console.setReaders(reader, nonBlockingReader);
       Main.console.setTerminal(terminal);
-      loop(terminal, reader);
+      loop();
     } catch (IOException e) {
       Main.console.error("Terminal error: " + e.getMessage());
     }
   }
 
-  private void loop(Terminal terminal, LineReader reader) {
+  private void loop() {
     while (true) {
-      int choice = Main.console.menu(items);
-
-      if (choice == items.size() - 1) {
-        break;
+      int choice = Main.console.menu(items, true);
+      try {
+        items.get(choice).run();
+      } catch (JobHunterException e) {
+        Main.console.error(e.getMessage());
       }
-
-      items.get(choice).run(reader);
     }
   }
 }

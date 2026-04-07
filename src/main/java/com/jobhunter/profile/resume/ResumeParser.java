@@ -2,7 +2,6 @@ package com.jobhunter.profile.resume;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Main;
-import com.jobhunter.exception.ProfileBuildException;
 import com.jobhunter.exception.ResumeNotFoundException;
 import com.jobhunter.utils.Utils;
 
@@ -20,24 +19,31 @@ public class ResumeParser {
   public ResumeParser(ClaudeService claude) {
     this.claude = claude;
     this.resumePath = Main.dotenv.get("RESUME_PATH");
-
-    if (resumePath == null || resumePath.isEmpty()) {
-      throw new ResumeNotFoundException(
-          "RESUME_PATH is not set in .env. Please add the path to your resume.");
-    }
   }
 
   public String parse() {
+    if (!isResumePathPresent()) {
+      throw new ResumeNotFoundException("RESUME_PATH environment variable is not set!");
+    }
+
     if (!Files.exists(Paths.get(resumePath))) {
       throw new ResumeNotFoundException("Resume file not found at: " + resumePath);
     }
+
     Utils.getFileType(resumePath);
     return parseResume(resumePath);
   }
 
+  private boolean isResumePathPresent() {
+    if (resumePath == null || resumePath.isEmpty()) {
+      return false;
+    }
+    return true;
+  }
+
   private String parseResume(String path) {
+    String resumeText;
     try {
-      String resumeText;
       if ("tex".equals(Utils.getFileType(path))) {
         resumeText = Utils.extractLatexPair(Files.readString(Paths.get(path))).getBody();
       } else {
@@ -47,9 +53,9 @@ public class ResumeParser {
           resumeText = extractor.getText();
         }
       }
-      return claude.parseResumeTexOrDocx(resumeText);
     } catch (IOException e) {
-      throw new ProfileBuildException("Failed to read resume file at: " + path, e);
+      throw new ResumeNotFoundException("Failed to read resume at: " + path, e);
     }
+    return claude.parseResumeTexOrDocx(resumeText);
   }
 }

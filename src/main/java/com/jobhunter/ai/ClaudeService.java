@@ -1,5 +1,7 @@
 package com.jobhunter.ai;
 
+import com.jobhunter.cli.Main;
+
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.errors.AnthropicServiceException;
@@ -14,7 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.util.concurrent.RateLimiter;
-import com.jobhunter.cli.Console;
 import com.jobhunter.exception.AiServiceException;
 import com.typesafe.config.Config;
 
@@ -57,8 +58,7 @@ public class ClaudeService {
       ExtractionResult result = objectMapper.readValue(raw, ExtractionResult.class);
       return result.found() ? Optional.of(result) : Optional.empty();
     } catch (JsonProcessingException e) {
-      Console.error("Failed to parse extraction response", e);
-      return Optional.empty();
+      throw new AiServiceException("Failed to parse Claude extraction response", e);
     }
   }
 
@@ -71,8 +71,7 @@ public class ClaudeService {
       JobMetaResult result = objectMapper.readValue(raw, JobMetaResult.class);
       return Optional.of(result);
     } catch (JsonProcessingException e) {
-      Console.error("Failed to parse job meta response", e);
-      return Optional.empty();
+      throw new AiServiceException("Failed to parse Claude job meta response", e);
     }
   }
 
@@ -133,7 +132,7 @@ public class ClaudeService {
       if (attempt > 0) {
         try {
           long jitter = ThreadLocalRandom.current().nextLong(0, delayMs / 2 + 1);
-          Console.warn(String.format("API error (status %d), retrying in %ds (attempt %d/%d)",
+          Main.console.warn(String.format("API error (status %d), retrying in %ds (attempt %d/%d)",
               lastException.statusCode(), (delayMs + jitter) / 1000, attempt, maxRetries));
           Thread.sleep(delayMs + jitter);
         } catch (InterruptedException ie) {

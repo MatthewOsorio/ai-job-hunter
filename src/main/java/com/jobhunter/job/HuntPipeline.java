@@ -1,60 +1,76 @@
 package com.jobhunter.job;
 
+import com.jobhunter.cli.Main;
+
+import java.nio.file.Path;
 import java.util.List;
 
 import com.jobhunter.ai.ClaudeService;
-import com.jobhunter.cli.Console;
-import com.jobhunter.cli.Spinner;
 import com.jobhunter.email.EmailService;
+import com.jobhunter.exception.FilteringException;
 
 public class HuntPipeline {
   private final JobScraper jobScraper;
   private final JobFilter jobFilter;
   private final JobTailor jobTailor;
   private final EmailService emailService;
-  private final Spinner spinner;
 
-  public HuntPipeline(ClaudeService claude, Spinner spinner) {
+  public HuntPipeline(ClaudeService claude) {
     this.jobScraper = new JobScraper(claude);
     this.jobFilter = new JobFilter(claude);
-    this.jobTailor = new JobTailor(claude, spinner);
+    this.jobTailor = new JobTailor(claude);
     this.emailService = new EmailService();
-    this.spinner = spinner;
   }
 
   public void runAll() {
-    JobScraperResult result;
-    spinner.start("Scraping jobs ");
+    JobScraperResult result = null;
+    Main.console.spinnerStart("Scraping jobs ");
+
     try {
       result = jobScraper.scrape();
     } finally {
-      spinner.stop();
+      if (result != null) {
+        List<Job> failed = result.getFailedJobs();
+        String failedSuffix = failed.isEmpty() ? "" : " (" + failed.size() + " failed)";
+        Main.console.spinnerSuccess(result.getValidJobs().size() + " jobs scraped" + failedSuffix);
+      } else {
+        Main.console.spinnerStop();
+      }
     }
 
     List<Job> validJobs = result.getValidJobs();
 
-    List<Job> filteredJobs;
-    spinner.start("Filtering jobs ");
+    List<Job> filteredJobs = null;
+    Main.console.spinnerStart("Filtering jobs ");
     try {
       filteredJobs = jobFilter.filter(validJobs);
     } finally {
-      spinner.stop();
+      if (filteredJobs != null) {
+        Main.console.spinnerSuccess(
+            filteredJobs.size() + " of " + validJobs.size() + " jobs matched your profile");
+      } else {
+        Main.console.spinnerStop();
+      }
     }
 
-    spinner.start("Tailoring resumes ");
+    if (filteredJobs == null) {
+      throw new FilteringException("Filtering did not complete successfully");
+    }
+
+    List<Path> tailored = null;
+    Main.console.spinnerStart("Tailoring resumes ");
     try {
-      jobTailor.tailor(filteredJobs);
+      tailored = jobTailor.tailor(filteredJobs);
     } finally {
-      spinner.stop();
+      if (tailored != null) {
+        Main.console.spinnerSuccess(tailored.size() + " resumes tailored");
+      } else {
+        Main.console.spinnerStop();
+      }
     }
 
-    spinner.start("Sending email report ");
-    try {
-      emailService.sendJobReport(filteredJobs, result.getFailedJobs());
-    } finally {
-      spinner.stop();
-    }
+    emailService.sendJobReport(filteredJobs, result.getFailedJobs());
 
-    Console.status("Hunt job complete!");
+    Main.console.generalCat("Hunt complete!");
   }
 }

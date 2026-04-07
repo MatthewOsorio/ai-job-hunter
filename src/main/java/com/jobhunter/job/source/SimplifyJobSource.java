@@ -1,7 +1,9 @@
 package com.jobhunter.job.source;
 
-import com.jobhunter.cli.Console;
+import com.jobhunter.cli.Main;
+
 import com.jobhunter.exception.ScrapingException;
+import com.jobhunter.exception.SimplifyScrapingException;
 import com.jobhunter.job.Job;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -29,12 +31,13 @@ public class SimplifyJobSource extends JobSource {
 
       Element heading = doc.select("h2:contains(software engineer)").first();
       if (heading == null)
-        throw new ScrapingException("Could not find job listings heading for: " + getName());
+        throw new SimplifyScrapingException(
+            "Could not find job listings heading for: " + getName());
 
       Element table =
           heading.parent().nextElementSibling().nextElementSibling().select("table").first();
       if (table == null)
-        throw new ScrapingException("Could not find job listings table for: " + getName());
+        throw new SimplifyScrapingException("Could not find job listings table for: " + getName());
 
       String currentCompany = null;
       for (Element row : table.select("tr")) {
@@ -68,8 +71,8 @@ public class SimplifyJobSource extends JobSource {
 
         jobs.add(new Job(title, firstCol, link.attr("href")));
       }
-    } catch (ScrapingException | IOException e) {
-      Console.error("Scraping failed for " + getName(), e);
+    } catch (SimplifyScrapingException | IOException e) {
+      throw new ScrapingException("Failed to scrape Simplify: " + e.getMessage(), e);
     }
     return jobs;
   }

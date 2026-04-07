@@ -17,7 +17,16 @@ public class PageFetcher {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
           + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-  private final BrowserPool browserPool = new BrowserPool();
+  private final int poolSize;
+  private BrowserPool browserPool;
+
+  public PageFetcher() {
+    this.poolSize = BrowserPool.DEFAULT_POOL_SIZE;
+  }
+
+  public PageFetcher(int poolSize) {
+    this.poolSize = poolSize;
+  }
 
   public FetchResult fetch(String url) {
     url = url.replaceAll("/(application|apply)(\\?|$)", "$2");
@@ -30,21 +39,26 @@ public class PageFetcher {
       }
     }
 
+    BrowserPool pool = getPool();
+    BrowserPool.BrowserInstance instance = pool.borrow();
     try {
-      BrowserPool.BrowserInstance instance = browserPool.borrow();
-      try {
-        return fetchWithPlaywright(url, instance.browser());
-      } finally {
-        browserPool.returnInstance(instance);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return FetchResult.error("Interrupted waiting for browser");
+      return fetchWithPlaywright(url, instance.browser());
+    } finally {
+      pool.returnInstance(instance);
     }
   }
 
   public void close() {
-    browserPool.shutdown();
+    if (browserPool != null) {
+      browserPool.shutdown();
+    }
+  }
+
+  private synchronized BrowserPool getPool() {
+    if (browserPool == null) {
+      browserPool = new BrowserPool(poolSize);
+    }
+    return browserPool;
   }
 
   private FetchResult fetchWithJsoup(String url) {

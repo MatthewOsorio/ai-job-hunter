@@ -4,7 +4,6 @@ import java.util.List;
 
 import com.jobhunter.ai.ClaudeService;
 import com.jobhunter.cli.Console;
-import com.jobhunter.cli.Spinner;
 import com.jobhunter.email.EmailService;
 
 public class JobRunner {
@@ -13,50 +12,50 @@ public class JobRunner {
   private final JobTailor jobTailor;
   private final EmailService emailService;
   private final ClaudeService claude;
-  private final Spinner spinner;
+  private final Console console;
 
-  public JobRunner(ClaudeService claude, Spinner spinner) {
+  public JobRunner(ClaudeService claude, Console console) {
     this.claude = claude;
-    this.spinner = spinner;
+    this.console = console;
     this.jobScraper = new JobScraper(this.claude);
     this.jobFilter = new JobFilter(this.claude);
-    this.jobTailor = new JobTailor(this.claude, spinner);
+    this.jobTailor = new JobTailor(this.claude);
     this.emailService = new EmailService();
   }
 
   public void runAll() {
     JobScraperResult result;
-    spinner.start("Scraping jobs ");
+    console.spinnerStart("Scraping jobs ");
     try {
       result = jobScraper.scrape();
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
     List<Job> validJobs = result.getValidJobs();
 
     List<Job> filteredJobs;
-    spinner.start("Filtering jobs ");
+    console.spinnerStart("Filtering jobs ");
     try {
       filteredJobs = jobFilter.filter(validJobs);
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
-    spinner.start("Tailoring resumes ");
+    console.spinnerStart("Tailoring resumes ");
     try {
       jobTailor.tailor(filteredJobs);
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
-    spinner.start("Sending email report ");
+    console.spinnerStart("Sending email report ");
     try {
       emailService.sendJobReport(filteredJobs, result.getFailedJobs());
     } finally {
-      spinner.stop();
+      console.spinnerStop();
     }
 
-    Console.status("Hunt job complete!");
+    console.generalCat("Hunt job complete!");
   }
 }

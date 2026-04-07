@@ -1,7 +1,5 @@
 package com.jobhunter.job;
 
-import com.jobhunter.cli.Main;
-
 import java.util.List;
 
 import com.jobhunter.ai.ClaudeService;
@@ -58,6 +56,6 @@ public class JobRunner {
       console.spinnerStop();
     }
 
-    Main.console.generalCat("Hunt job complete!");
+    console.generalCat("Hunt job complete!");
   }
 }

@@ -30,7 +30,7 @@ public class Main implements Runnable {
     try {
       main.validate();
     } catch (ConfigurationException e) {
-      console.error(e.getMessage());
+      System.err.println(e.getMessage());
       return 1;
     }
     return new CommandLine.RunLast().execute(parseResult);

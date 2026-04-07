@@ -64,39 +64,41 @@ public class JobScraper {
 
     JobScraperResult results = new JobScraperResult();
 
-    try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      List<Future<?>> futures = new ArrayList<>();
+    try {
+      try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        List<Future<?>> futures = new ArrayList<>();
 
-      for (Job job : jobs) {
-        futures.add(executor.submit(() -> {
+        for (Job job : jobs) {
+          futures.add(executor.submit(() -> {
+            try {
+              processJob(job, results);
+            } catch (SpecialInterruption e) {
+              throw e;
+            } catch (JobHunterException e) {
+              Main.console.warn("Skipping job at " + job.getUrl() + ": " + e.getMessage());
+              results.addFailedJob(job);
+            }
+          }));
+        }
+
+        for (Future<?> future : futures) {
           try {
-            processJob(job, results);
-          } catch (SpecialInterruption e) {
-            throw e;
-          } catch (JobHunterException e) {
-            Main.console.warn("Skipping job at " + job.getUrl() + ": " + e.getMessage());
-            results.addFailedJob(job);
+            future.get();
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SpecialInterruption("Job scraping interrupted!");
+          } catch (ExecutionException e) {
+            if (e.getCause() instanceof SpecialInterruption si) {
+              throw si;
+            }
+            throw new ScrapingException("Scrape task failed: " + e.getCause().getMessage(),
+                e.getCause());
           }
-        }));
-      }
-
-      for (Future<?> future : futures) {
-        try {
-          future.get();
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new SpecialInterruption("Job scraping interrupted!");
-        } catch (ExecutionException e) {
-          if (e.getCause() instanceof SpecialInterruption si) {
-            throw si;
-          }
-          throw new ScrapingException("Scrape task failed: " + e.getCause().getMessage(),
-              e.getCause());
         }
       }
+    } finally {
+      pageFetcher.close();
     }
-
-    pageFetcher.close();
 
     if (results.getValidJobs().isEmpty()) {
       throw new ScrapingException("All " + jobs.size() + " job(s) failed to fetch or extract");

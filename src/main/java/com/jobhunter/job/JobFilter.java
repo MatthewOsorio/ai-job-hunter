@@ -34,7 +34,8 @@ public class JobFilter {
         try {
           future.get();
         } catch (InterruptedException e) {
-          throw new SpecialInterruption(e.getMessage());
+          Thread.currentThread().interrupt();
+          throw new SpecialInterruption("Interrupted while filtering jobs");
         } catch (ExecutionException e) {
           throw new FilteringException(e.getMessage(), e.getCause());
         }
@@ -45,9 +46,14 @@ public class JobFilter {
   }
 
   public void filterOne(Job job) {
-    FilterResult result =
-        claudeService.filterJob(profileBuilder.getProfile().toString(), job.getDescription());
-    job.setShouldApply(result.shouldApply());
-    job.setMatchScore(result.matchScore());
+    try {
+      FilterResult result =
+          claudeService.filterJob(profileBuilder.getProfile().toString(), job.getDescription());
+      job.setShouldApply(result.shouldApply());
+      job.setMatchScore(result.matchScore());
+    } catch (AiServiceException e) {
+      job.setShouldApply(false);
+      job.setMatchScore(0);
+    }
   }
 }

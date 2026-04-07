@@ -129,6 +129,6 @@ public class ProfileBuilder {
           "GitHub config is incomplete (missing username or repos) - skipping GitHub profile");
       return false;
     }
-    return true;
+    return hasUsername && hasRepos;
   }
 }

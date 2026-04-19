@@ -39,14 +39,14 @@
         <dependency>
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
-            <version>1.58.0</version>
+            <version>1.59.0</version>
         </dependency>
 
         <!-- Anthropic API client -->
         <dependency>
             <groupId>com.anthropic</groupId>
             <artifactId>anthropic-java</artifactId>
-            <version>2.19.0</version>
+            <version>2.26.0</version>
         </dependency>
 
         <!-- JSON parsing -->
@@ -67,7 +67,7 @@
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
-            <version>3.51.3.0</version>
+            <version>3.53.0.0</version>
         </dependency>
 
         <!-- Scheduling -->
@@ -110,7 +110,7 @@
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline</artifactId>
-            <version>4.0.10</version>
+            <version>4.0.12</version>
         </dependency>
 
         <!-- .docx parsing -->
@@ -124,7 +124,7 @@
         <dependency>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
-          <version>33.5.0-jre</version>
+          <version>33.6.0-jre</version>
         </dependency>
     </dependencies>
 
